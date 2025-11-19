@@ -1,21 +1,30 @@
 import time
+from pivot_scaling import apply_partial_pivoting, apply_scaling
 
 def gauss_elimination(A, b):
+    """
+    Solves Ax = b using Gaussian Elimination.
+    Pivoting and scaling are applied using external helper functions
+    implemented by noor.
+    """
+
     start = time.time()
 
-    n = len(A)
+    # Convert values to float for safe numerical operations
     A = [list(map(float, row)) for row in A]
-    b = list(map(float, b))
+    b = list(map(float, b)]
+    n = len(A)
 
+    # Apply scaling when noor enables this feature
+    apply_scaling(A, b)
+
+    # Forward Elimination
     for k in range(n):
-        max_row = max(range(k, n), key=lambda r: abs(A[r][k]))
-        if A[max_row][k] == 0:
-            return None, (time.time() - start) * 1000
 
-        if max_row != k:
-            A[k], A[max_row] = A[max_row], A[k]
-            b[k], b[max_row] = b[max_row], b[k]
+        # Apply partial pivoting through noor's function
+        apply_partial_pivoting(A, b, k)
 
+        # Zero out rows below the pivot
         for i in range(k + 1, n):
             factor = A[i][k] / A[k][k]
             A[i][k] = 0
@@ -23,11 +32,11 @@ def gauss_elimination(A, b):
                 A[i][j] -= factor * A[k][j]
             b[i] -= factor * b[k]
 
+    # Back Substitution
     x = [0] * n
     for i in range(n - 1, -1, -1):
-        if A[i][i] == 0:
-            return None, (time.time() - start) * 1000
         s = sum(A[i][j] * x[j] for j in range(i + 1, n))
         x[i] = (b[i] - s) / A[i][i]
 
-    return x, (time.time() - start) * 1000
+    end = time.time()
+    return x, (end - start) * 1000
