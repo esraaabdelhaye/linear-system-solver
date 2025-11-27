@@ -2,10 +2,10 @@ import timeit
 from AbstractSolver import AbstractSolver
 
 class Crout(AbstractSolver):
-    def __init__(self, A, b,  tol, precision=6, single_step=False):
+    def __init__(self, A, b, precision=6, single_step=False):
         super().__init__(A, b, precision, single_step)
         self.x = [0] * self.n
-        self.tol = tol
+        self.tol = 1e-9
         self.er = 0
         self.o = list(range(self.n))
         self.s = [0] * self.n
