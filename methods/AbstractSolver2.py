@@ -37,16 +37,10 @@ class AbstractSolver2:
             self.A = sp.Matrix(self._to_symbolic(self.user_A))
             self.b = sp.Matrix(self._to_symbolic(self.user_b))
         else:
-            # CASE 2 → Numeric + symbolic_mode = True → force Symbolic
-            if self.symbolic_mode:
-                self.symbolic = True
-                self.A = sp.Matrix(self._to_symbolic(self.user_A))
-                self.b = sp.Matrix(self._to_symbolic(self.user_b))
-            else:
-                # CASE 3 → Numeric normal case
-                self.symbolic = False
-                self.A = np.array(self.user_A, dtype=float)
-                self.b = np.array(self.user_b, dtype=float)
+            # CASE 2 → Numeric normal case
+            self.symbolic = False
+            self.A = np.array(self.user_A, dtype=float)
+            self.b = np.array(self.user_b, dtype=float)
 
         self.n = len(self.A)
 
@@ -112,3 +106,5 @@ class AbstractSolver2:
     def add_step(self, step):
         if self.single_step:
             self.steps.append(step)
+
+
