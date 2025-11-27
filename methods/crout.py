@@ -37,7 +37,7 @@ class Crout(AbstractSolver):
             self.pivot(self.a, self.o, self.s, self.n, j)
 
             #check if scaled pivot is less than tol
-            if super.round_sig_fig(abs(self.a[self.o[j], j]) / self.s[self.o[j]] < self.tol):
+            if super().round_sig_fig(abs(self.a[self.o[j], j]) / self.s[self.o[j]] < self.tol):
                 self.er = -1
                 return
 
@@ -45,7 +45,7 @@ class Crout(AbstractSolver):
             for i in range(j, self.n):
                 sum = self.a[self.o[i], j]
                 for k in range(j):
-                    sum = super.round_sig_fig(sum - self.a[self.o[i], k] * self.a[self.o[k], j])
+                    sum = super().round_sig_fig(sum - self.a[self.o[i], k] * self.a[self.o[k], j])
                 self.a[self.o[i], j] = sum  #L(i, j)
 
             #check zero pivot after building L(j,j)
@@ -57,18 +57,18 @@ class Crout(AbstractSolver):
             for i in range(j+1, self.n):
                 sum = self.a[self.o[j], i]
                 for k in range(j):
-                    sum = super.round_sig_fig(sum - self.a[self.o[j], k] * self.a[self.o[k], i])
-                self.a[self.o[j], i] = super.round_sig_fig(sum / self.a[self.o[j], j])  #U(j, i)
+                    sum = super().round_sig_fig(sum - self.a[self.o[j], k] * self.a[self.o[k], i])
+                self.a[self.o[j], i] = super().round_sig_fig(sum / self.a[self.o[j], j])  #U(j, i)
 
     def substitute(self):
         a, o, n, b, x = self.a, self.o, self.n, self.b, self.x
         #forward sub
         y = [0] * n
-        y[o[0]] = super.round_sig_fig(b[o[0]] / a[o[0], 0])
+        y[o[0]] = super().round_sig_fig(b[o[0]] / a[o[0], 0])
         for i in range (1, n): 
             sum = b[o[i]]
             for j in range (i):
-                sum = super.round_sig_fig(sum - a[o[i],j] * y[o[j]])
+                sum = super().round_sig_fig(sum - a[o[i],j] * y[o[j]])
             y[o[i]] = sum / a[o[i],i]
 
         #backward sub
@@ -76,14 +76,14 @@ class Crout(AbstractSolver):
         for i in range (n-2, -1, -1):
             sum = y[o[i]]
             for j in range(i+1, n):
-                sum = super.round_sig_fig(sum - a[o[i],j] * x[j])
+                sum = super().round_sig_fig(sum - a[o[i],j] * x[j])
             x[i] = sum
 
     def pivot(self, a, o, s, n, k):
         p = k 
-        big = super.round_sig_fig(abs(a[o[k],k]) / s[o[k]])
+        big = super().round_sig_fig(abs(a[o[k],k]) / s[o[k]])
         for i in range(k+1, n):
-            dummy = super.round_sig_fig(abs(a[o[i],k] / s[o[i]]))
+            dummy = super().round_sig_fig(abs(a[o[i],k] / s[o[i]]))
             if (dummy > big):
                 big = dummy
                 p = i

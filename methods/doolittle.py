@@ -1,7 +1,7 @@
 import timeit
 from AbstractSolver import AbstractSolver
 
-class Doolittle:
+class Doolittle(AbstractSolver):
     def __init__(self, A, b,  tol, precision=6, single_step=False):
         super().__init__(A, b, precision, single_step)
         self.x = [0] * self.n
@@ -37,20 +37,20 @@ class Doolittle:
         for k in range(self.n-1):
             self.pivot(self.a, self.o, self.s, self.n, k)
             #check for singularity or near singularity
-            if super.round_sig_fig(abs(self.a[self.o[k],k]) / self.s[self.o[k]] < self.tol):
+            if super().round_sig_fig(abs(self.a[self.o[k],k]) / self.s[self.o[k]] < self.tol):
                 self.er = -1
                 return
             
             for i in range(k+1, self.n):
-                factor = super.round_sig_fig(self.a[self.o[i],k] / self.a[self.o[k],k])
+                factor = super().round_sig_fig(self.a[self.o[i],k] / self.a[self.o[k],k])
                 #reuse A to store L and U instead of creating 2 spearate matrices
                 self.a[self.o[i],k] = factor
 
                 #eliminate coeffecients at column j in subsequent rows
                 for j in range (k+1, self.n):
-                    self.a[self.o[i],j] = super.round_sig_fig(self.a[self.o[i],j] - factor * self.a[self.o[k],j])
+                    self.a[self.o[i],j] = super().round_sig_fig(self.a[self.o[i],j] - factor * self.a[self.o[k],j])
         #check for singularity (n-1) was not checked
-        if super.round_sig_fig(abs(self.a[self.o[self.n - 1], self.n - 1])) < self.tol:
+        if super().round_sig_fig(abs(self.a[self.o[self.n - 1], self.n - 1])) < self.tol:
             self.er = -1
 
     def substitute(self):
@@ -60,22 +60,22 @@ class Doolittle:
         for i in range (1, n): 
             sum = b[o[i]]
             for j in range (i):
-                sum = super.round_sig_fig(sum - a[o[i],j] * y[o[j]])
+                sum = super().round_sig_fig(sum - a[o[i],j] * y[o[j]])
             y[o[i]] = sum
 
         x[n-1] = y[o[n-1]] / a[o[n-1],n-1]
         for i in range (n-2, -1, -1):
             sum = 0
             for j in range(i+1, n):
-                sum = super.round_sig_fig(sum + a[o[i],j] * x[j])
-            x[i] = super.round_sig_fig((y[o[i]] - sum) / a[o[i],i])
+                sum = super().round_sig_fig(sum + a[o[i],j] * x[j])
+            x[i] = super().round_sig_fig((y[o[i]] - sum) / a[o[i],i])
 
     #find the largest coeffecient in a column after scaling
     def pivot(self, a, o, s, n, k):
         p = k 
-        big = super.round_sig_fig(abs(a[o[k],k]) / s[o[k]])
+        big = super().round_sig_fig(abs(a[o[k],k]) / s[o[k]])
         for i in range(k+1, n):
-            dummy = super.round_sig_fig(abs(a[o[i],k] / s[o[i]]))
+            dummy = super().round_sig_fig(abs(a[o[i],k] / s[o[i]]))
             if (dummy > big):
                 big = dummy
                 p = i
