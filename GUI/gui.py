@@ -5,6 +5,7 @@ import time
 import json
 # Used for type hinting for cleaner, more readable code
 from typing import List, Tuple, Dict, Any, Optional
+import copy  # Needed for safe matrix copying
 
 
 # --- 1. DATA TRANSFER OBJECT (DTO) ---
@@ -48,33 +49,102 @@ class BaseSolver:
         raise NotImplementedError("Subclasses must implement the solve method.")
 
 
-# --- Specific Solver Implementations (Placeholders) ---
+# --- Specific Solver Implementations ---
 
 class GaussEliminationSolver(BaseSolver):
-    """Placeholder for the Gauss Elimination method logic."""
+    """
+    Implements the Gauss Elimination method with mandatory partial pivoting
+    (Specification 8) to solve Ax = b.
+    """
 
     def solve(self) -> Dict[str, Any]:
         start_time = time.time()
-        # --- YOUR GAUSS ELIMINATION LOGIC HERE ---
-        # 1. Apply Partial Pivoting (Specification 8) - MANDATORY
-        # 2. Forward Elimination
-        # 3. Back Substitution
 
-        # Placeholder result for successful execution
-        solution = [float(i + 1) for i in range(self.N)]
-        iterations = "N/A (Direct Method)"
+        N = self.N
+        # Create an augmented matrix [A|b] for in-place modification
+        Aug = [self.A[i] + [self.b[i]] for i in range(N)]
 
-        # Example check for singularity (Specification 6)
-        # if abs(self.A[0][0]) < 1e-9:
-        #    raise ValueError("System is singular or ill-conditioned.")
+        # --- 1. Forward Elimination with Partial Pivoting ---
+        for i in range(N):
+            # 1a. Partial Pivoting: Find the row with the largest absolute value in the current column
+            max_val = abs(Aug[i][i])
+            max_row = i
+            for k in range(i + 1, N):
+                if abs(Aug[k][i]) > max_val:
+                    max_val = abs(Aug[k][i])
+                    max_row = k
+
+            # Swap the current row (i) with the max row (max_row) if a larger pivot is found
+            if max_row != i:
+                Aug[i], Aug[max_row] = Aug[max_row], Aug[i]
+
+            # 1b. Check for leading zero after pivoting (singular matrix)
+            if abs(Aug[i][i]) < 1e-12:  # Use a small tolerance for zero check
+
+                # Check for No Solution vs. Infinite Solutions (Specification 6)
+                is_all_zero = True
+                for j in range(i, N):
+                    if abs(Aug[i][j]) >= 1e-12:
+                        is_all_zero = False
+                        break
+
+                if is_all_zero and abs(Aug[i][N]) < 1e-12:
+                    # Row of zeros [0 0 ... 0 | 0] means infinite solutions
+                    raise ValueError("The system has infinite number of solutions.")
+                elif is_all_zero and abs(Aug[i][N]) >= 1e-12:
+                    # Row of zeros with a non-zero constant [0 0 ... 0 | C] means no solution
+                    raise ValueError("The system has no solution (inconsistent).")
+                else:
+                    # System is singular but potentially solvable or ill-conditioned
+                    raise ValueError(
+                        "The system is singular or ill-conditioned, and cannot be solved with this method.")
+
+            # 1c. Eliminate below the pivot
+            for k in range(i + 1, N):
+                factor = Aug[k][i] / Aug[i][i]
+                for j in range(i, N + 1):
+                    # Aug[k][j] = Aug[k][j] - factor * Aug[i][j]
+                    # We subtract slightly modified versions of the pivot row from the rows below
+                    Aug[k][j] -= factor * Aug[i][j]
+
+        # --- 2. Back Substitution ---
+        solution = [0.0] * N
+        for i in range(N - 1, -1, -1):
+            # Start with the constant term (Aug[i][N])
+            sum_of_knowns = Aug[i][N]
+
+            # Subtract the terms involving already solved variables (X_{i+1} to X_{N})
+            for j in range(i + 1, N):
+                sum_of_knowns -= Aug[i][j] * solution[j]
+
+            # Solve for the current variable (X_i)
+            solution[i] = sum_of_knowns / Aug[i][i]
 
         execution_time = time.time() - start_time
         return {
             "success": True,
             "solution": solution,
             "execution_time": execution_time,
-            "iterations": iterations,
+            "iterations": "N/A (Direct Method)",
         }
+
+
+class GaussJordanSolver(BaseSolver):
+    """Placeholder for the Gauss-Jordan method logic."""
+
+    def solve(self) -> Dict[str, Any]:
+        # Implementation will be similar to Gauss Elimination but requires
+        # elimination both above and below the diagonal.
+        raise NotImplementedError("Gauss-Jordan Solver not yet implemented.")
+
+
+class LUSolver(BaseSolver):
+    """Placeholder for the LU Decomposition method logic."""
+
+    def solve(self) -> Dict[str, Any]:
+        # This will need to check self.data.params['LU Form']
+        # It must also apply Partial Pivoting (Specification 8) if Doolittle/Crout form is used.
+        raise NotImplementedError("LU Decomposition Solver not yet implemented.")
 
 
 class JacobiSolver(BaseSolver):
@@ -104,7 +174,14 @@ class JacobiSolver(BaseSolver):
         }
 
 
-# Implement GaussJordanSolver, LUSolver, and GaussSeidelSolver here...
+class GaussSeidelSolver(BaseSolver):
+    """Placeholder for the Gauss-Seidel method logic."""
+
+    def solve(self) -> Dict[str, Any]:
+        # Implementation will be similar to Jacobi but uses newly computed
+        # values immediately in the same iteration.
+        raise NotImplementedError("Gauss-Seidel Solver not yet implemented.")
+
 
 class SolverFactory:
     """
@@ -113,10 +190,10 @@ class SolverFactory:
     """
     SOLVERS = {
         "Gauss Elimination": GaussEliminationSolver,
-        "Gauss-Jordan": GaussEliminationSolver,  # Placeholder
-        "LU Decomposition": GaussEliminationSolver,  # Placeholder
+        "Gauss-Jordan": GaussEliminationSolver,  # Placeholder, should be GaussJordanSolver
+        "LU Decomposition": GaussEliminationSolver,  # Placeholder, should be LUSolver
         "Jacobi-Iteration": JacobiSolver,
-        "Gauss-Seidel": JacobiSolver,  # Placeholder
+        "Gauss-Seidel": JacobiSolver,  # Placeholder, should be GaussSeidelSolver
     }
 
     @staticmethod
@@ -421,7 +498,7 @@ class NumericalSolverGUI:
 
         for i in range(min(N, 3)):  # Only fill up to N=3 for the initial example
             for j in range(N + 1):
-                if j < len(initial_data[i]):
+                if i < len(initial_data) and j < len(initial_data[i]):
                     self.matrix_entry_widgets[i][j].delete(0, tk.END)
                     self.matrix_entry_widgets[i][j].insert(0, str(initial_data[i][j]))
 
@@ -536,6 +613,7 @@ class NumericalSolverGUI:
             return
 
         # 2. Get and Validate System Input (Specification 1)
+        # Note: We pass a deep copy of A and b to prevent the solver from modifying the input data
         parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
 
         if parsed_matrix is None:
@@ -572,7 +650,8 @@ class NumericalSolverGUI:
             params["Initial Guess"] = guess_list  # Store validated list in params
 
         # --- 5. Create DTO and Call Solver ---
-        system_data = SystemData(A, b, method, precision, params)
+        # Pass deep copies of A and b to ensure the solver works on its own version
+        system_data = SystemData(copy.deepcopy(A), copy.deepcopy(b), method, precision, params)
         self.update_results_display("Solving...", f"Dispatching to {method} Solver...")
 
         try:
