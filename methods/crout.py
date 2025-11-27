@@ -1,16 +1,15 @@
-import numpy as np
 import timeit
+from AbstractSolver import AbstractSolver
 
-class Crout:
-    def __init__(self, a, b, n, tol):
-        self.a = a
-        self.b = b
-        self.n = n
-        self.x = [0] * n
+class Crout(AbstractSolver):
+    def __init__(self, A, b,  tol, precision=6, single_step=False):
+        super().__init__(A, b, precision, single_step)
+        self.x = [0] * self.n
         self.tol = tol
         self.er = 0
-        self.o = [0] * n
-        self.s = [0] * n
+        self.o = list(range(self.n))
+        self.s = [0] * self.n
+        self.a = self.A
   
     def solve(self):
         startTime = timeit.default_timer()
@@ -38,7 +37,7 @@ class Crout:
             self.pivot(self.a, self.o, self.s, self.n, j)
 
             #check if scaled pivot is less than tol
-            if abs(self.a[self.o[j], j]) / self.s[self.o[j]] < self.tol:
+            if super.round_sig_fig(abs(self.a[self.o[j], j]) / self.s[self.o[j]] < self.tol):
                 self.er = -1
                 return
 
@@ -46,7 +45,7 @@ class Crout:
             for i in range(j, self.n):
                 sum = self.a[self.o[i], j]
                 for k in range(j):
-                    sum -= self.a[self.o[i], k] * self.a[self.o[k], j]
+                    sum = super.round_sig_fig(sum - self.a[self.o[i], k] * self.a[self.o[k], j])
                 self.a[self.o[i], j] = sum  #L(i, j)
 
             #check zero pivot after building L(j,j)
@@ -58,18 +57,18 @@ class Crout:
             for i in range(j+1, self.n):
                 sum = self.a[self.o[j], i]
                 for k in range(j):
-                    sum -= self.a[self.o[j], k] * self.a[self.o[k], i]
-                self.a[self.o[j], i] = sum / self.a[self.o[j], j]  #U(j, i)
+                    sum = super.round_sig_fig(sum - self.a[self.o[j], k] * self.a[self.o[k], i])
+                self.a[self.o[j], i] = super.round_sig_fig(sum / self.a[self.o[j], j])  #U(j, i)
 
     def substitute(self):
         a, o, n, b, x = self.a, self.o, self.n, self.b, self.x
         #forward sub
         y = [0] * n
-        y[o[0]] = b[o[0]] / a[o[0], 0]
+        y[o[0]] = super.round_sig_fig(b[o[0]] / a[o[0], 0])
         for i in range (1, n): 
             sum = b[o[i]]
             for j in range (i):
-                sum = sum - a[o[i],j] * y[o[j]]
+                sum = super.round_sig_fig(sum - a[o[i],j] * y[o[j]])
             y[o[i]] = sum / a[o[i],i]
 
         #backward sub
@@ -77,14 +76,14 @@ class Crout:
         for i in range (n-2, -1, -1):
             sum = y[o[i]]
             for j in range(i+1, n):
-                sum = sum - a[o[i],j] * x[j]
+                sum = super.round_sig_fig(sum - a[o[i],j] * x[j])
             x[i] = sum
 
     def pivot(self, a, o, s, n, k):
         p = k 
-        big = abs(a[o[k],k]) / s[o[k]]
+        big = super.round_sig_fig(abs(a[o[k],k]) / s[o[k]])
         for i in range(k+1, n):
-            dummy = abs(a[o[i],k] / s[o[i]])
+            dummy = super.round_sig_fig(abs(a[o[i],k] / s[o[i]]))
             if (dummy > big):
                 big = dummy
                 p = i
@@ -92,21 +91,3 @@ class Crout:
         o[p] = o[k]
         o[k] = dummy
 
-
-
-
-#Lcrout = Utdoolittle
-#Ucrout = Ltdoolittle
-
-# def getTranspose(A):
-#     rows = len(A)
-#     cols = len(A[0])
-
-#     #initializing values of A transpose and determining no. of rows and cols
-#     At = [[0] * rows for _ in range(cols)]
-
-#     for i in range(rows):
-#         for j in range(cols):
-#             At[j][i] = A[i][j]
-
-#     return At
