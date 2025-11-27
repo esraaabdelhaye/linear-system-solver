@@ -7,6 +7,9 @@ import json
 from typing import List, Tuple, Dict, Any, Optional
 import copy  # Needed for safe matrix copying
 
+from methods.GaussElimination import GaussElimination
+from methods.GaussJordan import GaussJordan
+
 
 # --- 1. DATA TRANSFER OBJECT (DTO) ---
 
@@ -55,88 +58,105 @@ class GaussEliminationSolver(BaseSolver):
     """
     Implements the Gauss Elimination method with mandatory partial pivoting
     (Specification 8) to solve Ax = b.
+    Uses the GaussElimination class from methods/GaussElimination.py
     """
 
     def solve(self) -> Dict[str, Any]:
         start_time = time.time()
 
-        N = self.N
-        # Create an augmented matrix [A|b] for in-place modification
-        Aug = [self.A[i] + [self.b[i]] for i in range(N)]
+        # Get optional parameters
+        use_scaling = self.data.params.get("use_scaling", False)
+        single_step = self.data.params.get("single_step", False)
 
-        # --- 1. Forward Elimination with Partial Pivoting ---
-        for i in range(N):
-            # 1a. Partial Pivoting: Find the row with the largest absolute value in the current column
-            max_val = abs(Aug[i][i])
-            max_row = i
-            for k in range(i + 1, N):
-                if abs(Aug[k][i]) > max_val:
-                    max_val = abs(Aug[k][i])
-                    max_row = k
+        try:
+            # Create solver instance using YOUR implementation
+            solver = GaussElimination(
+                A=self.A,
+                b=self.b,
+                precision=self.precision,
+                single_step=single_step,
+                use_scaling=use_scaling
+            )
 
-            # Swap the current row (i) with the max row (max_row) if a larger pivot is found
-            if max_row != i:
-                Aug[i], Aug[max_row] = Aug[max_row], Aug[i]
+            # Solve the system
+            solution = solver.solve()
 
-            # 1b. Check for leading zero after pivoting (singular matrix)
-            if abs(Aug[i][i]) < 1e-12:  # Use a small tolerance for zero check
+            # Convert numpy array to list for JSON serialization
+            solution_list = solution.tolist() if hasattr(solution, 'tolist') else list(solution)
 
-                # Check for No Solution vs. Infinite Solutions (Specification 6)
-                is_all_zero = True
-                for j in range(i, N):
-                    if abs(Aug[i][j]) >= 1e-12:
-                        is_all_zero = False
-                        break
+            execution_time = time.time() - start_time
 
-                if is_all_zero and abs(Aug[i][N]) < 1e-12:
-                    # Row of zeros [0 0 ... 0 | 0] means infinite solutions
-                    raise ValueError("The system has infinite number of solutions.")
-                elif is_all_zero and abs(Aug[i][N]) >= 1e-12:
-                    # Row of zeros with a non-zero constant [0 0 ... 0 | C] means no solution
-                    raise ValueError("The system has no solution (inconsistent).")
-                else:
-                    # System is singular but potentially solvable or ill-conditioned
-                    raise ValueError(
-                        "The system is singular or ill-conditioned, and cannot be solved with this method.")
+            result = {
+                "success": True,
+                "solution": solution_list,
+                "execution_time": execution_time,
+                "iterations": "N/A (Direct Method)",
+            }
 
-            # 1c. Eliminate below the pivot
-            for k in range(i + 1, N):
-                factor = Aug[k][i] / Aug[i][i]
-                for j in range(i, N + 1):
-                    # Aug[k][j] = Aug[k][j] - factor * Aug[i][j]
-                    # We subtract slightly modified versions of the pivot row from the rows below
-                    Aug[k][j] -= factor * Aug[i][j]
+            # Add steps if single-step mode was enabled
+            if single_step and hasattr(solver, 'steps'):
+                result["steps"] = solver.steps
 
-        # --- 2. Back Substitution ---
-        solution = [0.0] * N
-        for i in range(N - 1, -1, -1):
-            # Start with the constant term (Aug[i][N])
-            sum_of_knowns = Aug[i][N]
+            return result
 
-            # Subtract the terms involving already solved variables (X_{i+1} to X_{N})
-            for j in range(i + 1, N):
-                sum_of_knowns -= Aug[i][j] * solution[j]
-
-            # Solve for the current variable (X_i)
-            solution[i] = sum_of_knowns / Aug[i][i]
-
-        execution_time = time.time() - start_time
-        return {
-            "success": True,
-            "solution": solution,
-            "execution_time": execution_time,
-            "iterations": "N/A (Direct Method)",
-        }
+        except ValueError as e:
+            # Handle known errors (singular matrix, no solution, etc.)
+            raise ValueError(str(e))
+        except Exception as e:
+            # Handle unexpected errors
+            raise RuntimeError(f"Gauss Elimination failed: {str(e)}")
 
 
 class GaussJordanSolver(BaseSolver):
-    """Placeholder for the Gauss-Jordan method logic."""
+    """
+    Implements the Gauss-Jordan method with mandatory partial pivoting.
+    Uses the GaussJordan class from methods/GaussJordan.py
+    """
 
     def solve(self) -> Dict[str, Any]:
-        # Implementation will be similar to Gauss Elimination but requires
-        # elimination both above and below the diagonal.
-        raise NotImplementedError("Gauss-Jordan Solver not yet implemented.")
+        start_time = time.time()
 
+        # Get optional parameters
+        use_scaling = self.data.params.get("use_scaling", False)
+        single_step = self.data.params.get("single_step", False)
+
+        try:
+            # Create solver instance using YOUR implementation
+            solver = GaussJordan(
+                A=self.A,
+                b=self.b,
+                precision=self.precision,
+                single_step=single_step,
+                use_scaling=use_scaling
+            )
+
+            # Solve the system
+            solution = solver.solve()
+
+            # Convert numpy array to list for JSON serialization
+            solution_list = solution.tolist() if hasattr(solution, 'tolist') else list(solution)
+
+            execution_time = time.time() - start_time
+
+            result = {
+                "success": True,
+                "solution": solution_list,
+                "execution_time": execution_time,
+                "iterations": "N/A (Direct Method)",
+            }
+
+            # Add steps if single-step mode was enabled
+            if single_step and hasattr(solver, 'steps'):
+                result["steps"] = solver.steps
+
+            return result
+
+        except ValueError as e:
+            # Handle known errors (singular matrix, no solution, etc.)
+            raise ValueError(str(e))
+        except Exception as e:
+            # Handle unexpected errors
+            raise RuntimeError(f"Gauss-Jordan failed: {str(e)}")
 
 class LUSolver(BaseSolver):
     """Placeholder for the LU Decomposition method logic."""
@@ -190,7 +210,7 @@ class SolverFactory:
     """
     SOLVERS = {
         "Gauss Elimination": GaussEliminationSolver,
-        "Gauss-Jordan": GaussEliminationSolver,  # Placeholder, should be GaussJordanSolver
+        "Gauss-Jordan": GaussJordanSolver,  # Placeholder, should be GaussJordanSolver
         "LU Decomposition": GaussEliminationSolver,  # Placeholder, should be LUSolver
         "Jacobi-Iteration": JacobiSolver,
         "Gauss-Seidel": JacobiSolver,  # Placeholder, should be GaussSeidelSolver
@@ -510,6 +530,27 @@ class NumericalSolverGUI:
         self.clear_params_frame()
         method = self.method_var.get()
 
+        if method in ["Gauss Elimination", "Gauss-Jordan"]:
+            # Bonus #3: Scaling Option
+            self.use_scaling_var = tk.BooleanVar(self.master, value=False)
+            scaling_check = ttk.Checkbutton(
+                self.params_frame,
+                text="☑ Use Scaling (Scaled Partial Pivoting) - Bonus #3",
+                variable=self.use_scaling_var,
+                style='TCheckbutton'
+            )
+            scaling_check.pack(fill='x', pady=(0, 10))
+
+            # Bonus #1: Single-Step Mode Option
+            self.single_step_var = tk.BooleanVar(self.master, value=False)
+            step_check = ttk.Checkbutton(
+                self.params_frame,
+                text="☑ Enable Single-Step Mode (records all steps) - Bonus #1",
+                variable=self.single_step_var,
+                style='TCheckbutton'
+            )
+            step_check.pack(fill='x', pady=(0, 10))
+
         if method == "LU Decomposition":
             # Requires LU form selection
             ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(0, 5))
@@ -557,6 +598,27 @@ class NumericalSolverGUI:
         """Collects all dynamic parameters from the GUI based on the selected method."""
         method = self.method_var.get()
         params = {}
+
+        if method in ["Gauss Elimination", "Gauss-Jordan"]:
+            params["use_scaling"] = getattr(self, 'use_scaling_var', tk.BooleanVar(value=False)).get()
+            params["single_step"] = getattr(self, 'single_step_var', tk.BooleanVar(value=False)).get()
+
+        if method == "LU Decomposition":
+            params["LU Form"] = self.lu_form_var.get()
+
+        elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
+            # Store raw guess string first, validate size later in solve_system
+            params["Initial Guess (Raw)"] = self.initial_guess_var.get()
+            params["Stopping Condition Type"] = self.stop_condition_type_var.get()
+
+            # Validate Stopping Value format
+            try:
+                stop_value = float(self.stop_value_var.get())
+                params["Stopping Value"] = stop_value
+            except ValueError:
+                return {"error": "Stopping Value must be a number."}
+
+        return params
 
         if method == "LU Decomposition":
             params["LU Form"] = self.lu_form_var.get()
