@@ -5,7 +5,7 @@ from methods.AbstractSolver import AbstractSolver
 
 
 class iterative_method(AbstractSolver):
-    def __init__(self, X0, A, B, precision, iterations, tol, jacobi: bool, b):
+    def __init__(self, X0, A, B, precision, iterations, tol, jacobi: bool):
         super().__init__(A, B, precision)
         self.X = np.array(X0, dtype=float)
         self.iterations = iterations
