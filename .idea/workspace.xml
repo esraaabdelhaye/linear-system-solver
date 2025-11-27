@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1ef5ce18-6e9c-4bfd-b626-b438842b4588" name="Changes" comment="Changes in GUI">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/gui.py" afterDir="false" />
-    </list>
+    <list default="true" id="1ef5ce18-6e9c-4bfd-b626-b438842b4588" name="Changes" comment="Edits In GUI (GaussJ &amp; Gauss ELM)" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -78,9 +74,22 @@
       <updated>1763970638464</updated>
       <workItem from="1763970639686" duration="96000" />
     </task>
+    <task id="LOCAL-00001" summary="Edits In GUI (GaussJ &amp; Gauss ELM)">
+      <option name="closed" value="true" />
+      <created>1764270561756</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1764270561756</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Edits In GUI (GaussJ &amp; Gauss ELM)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Edits In GUI (GaussJ &amp; Gauss ELM)" />
   </component>
 </project>

@@ -620,22 +620,6 @@ class NumericalSolverGUI:
 
         return params
 
-        if method == "LU Decomposition":
-            params["LU Form"] = self.lu_form_var.get()
-
-        elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-            # Store raw guess string first, validate size later in solve_system
-            params["Initial Guess (Raw)"] = self.initial_guess_var.get()
-            params["Stopping Condition Type"] = self.stop_condition_type_var.get()
-
-            # Validate Stopping Value format
-            try:
-                stop_value = float(self.stop_value_var.get())
-                params["Stopping Value"] = stop_value
-            except ValueError:
-                return {"error": "Stopping Value must be a number."}
-
-        return params
 
     def update_results_display(self, text: str, log: str):
         """Helper to safely enable, clear, update, and disable ScrolledText widgets."""
