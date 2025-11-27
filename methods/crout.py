@@ -9,17 +9,18 @@ class Crout(AbstractSolver):
         self.er = 0
         self.o = list(range(self.n))
         self.s = [0] * self.n
-        self.a = self.A
+        self.a = self.A.copy()
   
     def solve(self):
         startTime = timeit.default_timer()
+        self.validate()
         self.decompose()
         if(self.er == -1):
             return
         self.substitute()
         endTime = timeit.default_timer()
         time = endTime - startTime
-        return self.x
+        return self.x,time
     
     def decompose(self):
         #getting scaling matrix
@@ -37,7 +38,7 @@ class Crout(AbstractSolver):
             self.pivot(self.a, self.o, self.s, self.n, j)
 
             #check if scaled pivot is less than tol
-            if super().round_sig_fig(abs(self.a[self.o[j], j]) / self.s[self.o[j]] < self.tol):
+            if super().round_sig_fig(abs(self.a[self.o[j], j]) / self.s[self.o[j]]) < self.tol:
                 self.er = -1
                 return
 
@@ -79,6 +80,7 @@ class Crout(AbstractSolver):
                 sum = super().round_sig_fig(sum - a[o[i],j] * x[j])
             x[i] = sum
 
+    #finding large scaled coeffcient in column (magnitude wise)
     def pivot(self, a, o, s, n, k):
         p = k 
         big = super().round_sig_fig(abs(a[o[k],k]) / s[o[k]])

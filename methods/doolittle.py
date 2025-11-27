@@ -9,10 +9,11 @@ class Doolittle(AbstractSolver):
         self.er = 0
         self.o = list(range(self.n))
         self.s = [0] * self.n
-        self.a = self.A
+        self.a = self.A.copy()
 
     def solve(self):
         startTime = timeit.default_timer()
+        self.validate()
         self.decompose()
         if(self.er == -1):
             return
@@ -20,8 +21,7 @@ class Doolittle(AbstractSolver):
 
         endTime = timeit.default_timer()
         time = endTime - startTime
-
-        return self.x
+        return self.x, time
 
 
     def decompose(self): 
@@ -37,7 +37,7 @@ class Doolittle(AbstractSolver):
         for k in range(self.n-1):
             self.pivot(self.a, self.o, self.s, self.n, k)
             #check for singularity or near singularity
-            if super().round_sig_fig(abs(self.a[self.o[k],k]) / self.s[self.o[k]] < self.tol):
+            if super().round_sig_fig(abs(self.a[self.o[k],k]) / self.s[self.o[k]]) < self.tol:
                 self.er = -1
                 return
             
