@@ -11,6 +11,7 @@ class Doolittle:
         self.er = 0
         self.o = [0] * n
         self.x = [0] * n
+        self.s = [0] * n
 
     def solve(self):
         startTime = timeit.default_timer()
@@ -30,8 +31,8 @@ class Doolittle:
             self.o[i] = i
             self.s[i] = abs(self.a[i, 0])
             for j in range(1, self.n):
-                if(abs(self.a[i, j] > self.s[i])):
-                    self.s[i] = abs[i, j]
+                if abs(self.a[i, j]) > self.s[i]:
+                    self.s[i] = abs(self.a[i, j])
 
 
         for k in range(self.n-1):
@@ -46,7 +47,7 @@ class Doolittle:
                 for j in range (k+1, self.n):
                     self.a[self.o[i],j] = self.a[self.o[i],j] - factor * self.a[self.o[k],j]
         if abs(self.a[self.o[self.n - 1], self.n - 1]) < self.tol:
-            er = -1
+            self.er = -1
 
     def substitute(a, o, n, b, x):
         y = [0] * n
