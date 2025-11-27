@@ -5,8 +5,12 @@ import time
 import json
 from typing import List, Tuple, Dict, Any, Optional
 
+# Import your implemented methods
+from methods.GaussElimination import GaussElimination
+from methods.GaussJordan import GaussJordan
 
-# --- 1. CORE LOGIC PLACEHOLDERS (To be implemented in detail by you) ---
+
+# --- 1. CORE LOGIC ---
 
 class NumericalSolver:
     """
@@ -17,7 +21,6 @@ class NumericalSolver:
     def __init__(self, precision: int = 5):
         """Initializes the solver with a default precision."""
         self.precision = precision
-        # You will add more attributes and methods here later
 
     def set_precision(self, precision: int):
         """Sets the number of significant figures for calculations."""
@@ -32,8 +35,8 @@ class NumericalSolver:
         4 5 6 | 20
         7 8 9 | 30
 
-        Note: You will need to implement robust, bullet-proof validation here
-              to ensure coefficients are numbers and the system is square (N variables = N equations).
+        Note: Implements robust, bullet-proof validation to ensure coefficients are numbers
+              and the system is square (N variables = N equations).
         """
         lines = input_text.strip().split('\n')
         N = len(lines)
@@ -69,41 +72,46 @@ class NumericalSolver:
 
     def solve(self, method: str, A: List[List[float]], b: List[float], params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        The main solving dispatch method. Replace this placeholder with actual
-        numerical solving implementations.
+        The main solving dispatch method with actual implementations.
         """
         N = len(A)
         start_time = time.time()
 
-        # --- Placeholder Results ---
-        solution = [float(i + 1) for i in range(N)]  # Example solution
+        solution = None
         iterations = "N/A"
         execution_time = 0.0
 
         try:
-            if method in ["Gauss Elimination", "Gauss-Jordan"]:
-                # Implement partial pivoting here (Specification 8)
-                time.sleep(0.5)  # Simulate calculation time
-                # Your full Gauss Elimination/Gauss-Jordan logic goes here
+            if method == "Gauss Elimination":
+                solver = GaussElimination(
+                    A, b,
+                    precision=self.precision,
+                    single_step=False,
+                    use_scaling=params.get("use_scaling", False)
+                )
+                solution = solver.solve()
 
-                # Check for no solution / infinite solutions (Specification 6)
-                # if check_for_singularity(A): raise ValueError("Singular Matrix: No unique solution.")
+            elif method == "Gauss-Jordan":
+                solver = GaussJordan(
+                    A, b,
+                    precision=self.precision,
+                    single_step=False,
+                    use_scaling=params.get("use_scaling", False)
+                )
+                solution = solver.solve()
 
             elif method == "LU Decomposition":
-                # Check params for 'LU Form' (Doolittle, Crout, Cholesky)
                 lu_form = params.get("LU Form", "Doolittle Form")
-                # Implement partial pivoting (Doolittle form only) and LU decomposition logic
-                time.sleep(0.7)
+                # TODO: Implement LU Decomposition (teammate's part)
+                raise ValueError("LU Decomposition not yet implemented.")
 
             elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-                # Check params for 'Initial Guess' and 'Stopping Condition'
                 initial_guess = params.get("Initial Guess", [0.0] * N)
                 stop_condition = params.get("Stopping Condition Type", "Number of Iterations")
                 stop_value = params.get("Stopping Value", 50)
 
-                # Implement convergence check (diagonal dominance) and iterative logic
-                time.sleep(1.0)
-                iterations = 35  # Example iteration count
+                # TODO: Implement iterative methods (teammate's part)
+                raise ValueError(f"{method} not yet implemented.")
 
             else:
                 raise ValueError("Selected method is not implemented.")
@@ -112,7 +120,7 @@ class NumericalSolver:
 
             return {
                 "success": True,
-                "solution": solution,
+                "solution": solution.tolist() if hasattr(solution, 'tolist') else list(solution),
                 "execution_time": execution_time,
                 "iterations": iterations,
                 "method_used": method,
@@ -150,6 +158,7 @@ class NumericalSolverGUI:
         # --- Variables ---
         self.method_var = tk.StringVar(master, value="Gauss Elimination")
         self.precision_var = tk.StringVar(master, value="5")  # Default precision (Spec 4)
+        self.use_scaling_var = tk.BooleanVar(master, value=False)  # For scaling bonus
 
         # Dynamic parameter variables
         self.lu_form_var = tk.StringVar(master, value="Doolittle Form")
@@ -254,6 +263,16 @@ class NumericalSolverGUI:
         self.clear_params_frame()
         method = self.method_var.get()
 
+        # Add scaling option for Gauss methods (BONUS #3)
+        if method in ["Gauss Elimination", "Gauss-Jordan"]:
+            self.use_scaling_var = tk.BooleanVar(self.master, value=False)
+            scaling_check = ttk.Checkbutton(
+                self.params_frame,
+                text="Enable Scaling (Bonus #3)",
+                variable=self.use_scaling_var
+            )
+            scaling_check.pack(fill='x', pady=(5, 10))
+
         if method == "LU Decomposition":
             ttk.Label(self.params_frame, text="LU Form:").pack(fill='x', pady=(0, 5))
             lu_options = ["Doolittle Form", "Crout Form", "Cholesky Form"]
@@ -294,13 +313,16 @@ class NumericalSolverGUI:
         method = self.method_var.get()
         params = {}
 
+        # Add scaling parameter for Gauss methods
+        if method in ["Gauss Elimination", "Gauss-Jordan"]:
+            params["use_scaling"] = getattr(self, 'use_scaling_var', tk.BooleanVar(value=False)).get()
+
         if method == "LU Decomposition":
             params["LU Form"] = self.lu_form_var.get()
 
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
             guess_list = self.parse_guess_input(self.initial_guess_var.get())
             if guess_list is None:
-                # Raise an exception or handle error if initial guess is invalid
                 return {"error": "Invalid Initial Guess Format"}
 
             params["Initial Guess"] = guess_list
@@ -383,9 +405,6 @@ class NumericalSolverGUI:
             sol_text = ""
             for i, val in enumerate(results["solution"]):
                 # Format solution to the requested precision
-                # Note: f-string formatting handles significant figures loosely;
-                # for true significant figures, you need more complex formatting logic.
-                # We'll use simple rounding here.
                 formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
                 sol_text += f"X{i + 1} = {formatted_val}\n"
 
