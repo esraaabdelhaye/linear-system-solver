@@ -3,6 +3,7 @@ import numpy as np
 
 class AbstractSolver:
     def __init__(self, A, b, precision=6, single_step=False):
+
         self.A = np.array(A)
         self.b = np.array(b)
         self.precision = precision

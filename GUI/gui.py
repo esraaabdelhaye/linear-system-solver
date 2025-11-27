@@ -3,129 +3,202 @@ from tkinter import ttk, scrolledtext, messagebox
 import re
 import time
 import json
+# Used for type hinting for cleaner, more readable code
 from typing import List, Tuple, Dict, Any, Optional
 
 
-# --- 1. CORE LOGIC PLACEHOLDERS (To be implemented in detail by you) ---
+# --- 1. DATA TRANSFER OBJECT (DTO) ---
+
+class SystemData:
+    """
+    Data Transfer Object (DTO) for passing system configuration and data
+    from the GUI layer to the Solver layer (clean separation of concerns).
+    """
+
+    def __init__(self, A: List[List[float]], b: List[float], method: str,
+                 precision: int, params: Dict[str, Any]):
+        self.A = A  # Coefficient Matrix (2D list of floats)
+        self.b = b  # Constant Vector (1D list of floats)
+        self.method = method  # Solving method (e.g., "Gauss Elimination")
+        self.precision = precision  # Number of significant figures (Specification 4)
+        self.params = params  # Method-specific parameters (e.g., initial guess, LU form)
+        self.N = len(A)  # Size of the system (Number of Variables/Equations)
+
+
+# --- 2. SOLVER INTERFACE AND FACTORY ---
+
+class BaseSolver:
+    """
+    Base class (Interface) for all numerical solving methods.
+    All specific solvers must inherit from this and implement the solve method.
+    """
+
+    def __init__(self, data: SystemData):
+        self.data = data
+        self.A = data.A
+        self.b = data.b
+        self.N = data.N
+        self.precision = data.precision
+
+    def solve(self) -> Dict[str, Any]:
+        """
+        Abstract method to be implemented by derived classes.
+        Must return a dictionary containing 'success', 'solution', 'execution_time', and 'iterations'.
+        """
+        raise NotImplementedError("Subclasses must implement the solve method.")
+
+
+# --- Specific Solver Implementations (Placeholders) ---
+
+class GaussEliminationSolver(BaseSolver):
+    """Placeholder for the Gauss Elimination method logic."""
+
+    def solve(self) -> Dict[str, Any]:
+        start_time = time.time()
+        # --- YOUR GAUSS ELIMINATION LOGIC HERE ---
+        # 1. Apply Partial Pivoting (Specification 8) - MANDATORY
+        # 2. Forward Elimination
+        # 3. Back Substitution
+
+        # Placeholder result for successful execution
+        solution = [float(i + 1) for i in range(self.N)]
+        iterations = "N/A (Direct Method)"
+
+        # Example check for singularity (Specification 6)
+        # if abs(self.A[0][0]) < 1e-9:
+        #    raise ValueError("System is singular or ill-conditioned.")
+
+        execution_time = time.time() - start_time
+        return {
+            "success": True,
+            "solution": solution,
+            "execution_time": execution_time,
+            "iterations": iterations,
+        }
+
+
+class JacobiSolver(BaseSolver):
+    """Placeholder for the Jacobi Iteration method logic."""
+
+    def solve(self) -> Dict[str, Any]:
+        start_time = time.time()
+        # --- YOUR JACOBI ITERATION LOGIC HERE ---
+        # Use self.data.params for 'Initial Guess', 'Stopping Condition Type', 'Stopping Value'
+
+        time.sleep(1.0)  # Simulate calculation time
+
+        # Placeholder result
+        solution = [float(i) + 0.5 for i in range(self.N)]
+        iterations = 42  # Example iteration count
+
+        # Example check for convergence (Specification 6)
+        # if not is_diagonally_dominant(self.A):
+        #    raise ValueError("System may not converge (not diagonally dominant).")
+
+        execution_time = time.time() - start_time
+        return {
+            "success": True,
+            "solution": solution,
+            "execution_time": execution_time,
+            "iterations": iterations,
+        }
+
+
+# Implement GaussJordanSolver, LUSolver, and GaussSeidelSolver here...
+
+class SolverFactory:
+    """
+    Factory class to instantiate the correct solver based on the method
+    specified in the SystemData DTO. This decouples the GUI from specific solvers.
+    """
+    SOLVERS = {
+        "Gauss Elimination": GaussEliminationSolver,
+        "Gauss-Jordan": GaussEliminationSolver,  # Placeholder
+        "LU Decomposition": GaussEliminationSolver,  # Placeholder
+        "Jacobi-Iteration": JacobiSolver,
+        "Gauss-Seidel": JacobiSolver,  # Placeholder
+    }
+
+    @staticmethod
+    def get_solver(data: SystemData) -> BaseSolver:
+        """Returns an instance of the specific solver class."""
+        solver_class = SolverFactory.SOLVERS.get(data.method)
+        if not solver_class:
+            raise ValueError(f"Solver for method '{data.method}' is not implemented.")
+        # Instantiate the correct solver with the DTO
+        return solver_class(data)
+
+
+# --- 3. NUMERICAL SOLVER CLASS (Refactored to use Factory) ---
 
 class NumericalSolver:
     """
-    A class to encapsulate all numerical methods for solving systems of linear equations.
-    This structure promotes good OOP practices as required by the project.
+    The coordinator class: handles input parsing, DTO creation, and dispatching
+    the solving task to the appropriate solver via the Factory.
     """
 
-    def __init__(self, precision: int = 5):
-        """Initializes the solver with a default precision."""
-        self.precision = precision
-        # You will add more attributes and methods here later
-
-    def set_precision(self, precision: int):
-        """Sets the number of significant figures for calculations."""
-        self.precision = precision
-
-    def parse_input(self, input_text: str) -> Optional[Tuple[List[List[float]], List[float]]]:
+    def parse_input(self, entry_widgets: List[List[tk.Entry]], N: int) -> Optional[
+        Tuple[List[List[float]], List[float]]]:
         """
-        Parses the raw text input (e.g., matrix format) into the Augmented Matrix [A|b].
-
-        Assumed Input Format (Example for 3x3):
-        1 2 3 | 10
-        4 5 6 | 20
-        7 8 9 | 30
-
-        Note: You will need to implement robust, bullet-proof validation here
-              to ensure coefficients are numbers and the system is square (N variables = N equations).
+        Reads numerical data from the Tkinter Entry grid into the augmented matrix [A|b].
+        (Specification 1b: Bullet-proof input validation)
         """
-        lines = input_text.strip().split('\n')
-        N = len(lines)
         A = []
         b = []
 
         if N == 0:
-            messagebox.showerror("Input Error", "The system of equations cannot be empty.")
+            messagebox.showerror("Input Error", "Number of variables (N) must be > 0.")
             return None
 
         try:
-            for i, line in enumerate(lines):
-                # Regex to split on spaces, ignoring empty strings, and handling the '|' separator
-                parts = [p.strip() for p in re.split(r'\s*\|\s*|\s+', line) if p.strip()]
+            for i in range(N):
+                row_a = []
+                # Iterate through columns for coefficients A[i][j]
+                for j in range(N):
+                    value = entry_widgets[i][j].get().strip()
+                    # Convert to float. Empty input is treated as 0.0 (Specification 1d)
+                    row_a.append(float(value) if value else 0.0)
 
-                # Check for N+1 components (N coefficients + 1 constant)
-                if len(parts) != N + 1:
-                    messagebox.showerror("Input Error",
-                                         f"Row {i + 1} has {len(parts) - 1} coefficients. Expected {N} coefficients for an {N}x{N} system.")
-                    return None
-
-                row_a = [float(p) for p in parts[:-1]]
-                row_b = float(parts[-1])
+                    # Constant b[i] (last column)
+                value_b = entry_widgets[i][N].get().strip()
+                row_b = float(value_b) if value_b else 0.0
 
                 A.append(row_a)
                 b.append(row_b)
 
         except ValueError:
-            messagebox.showerror("Input Error", "All coefficients and constants must be valid numbers.")
+            messagebox.showerror("Input Error",
+                                 "All coefficients and constants must be valid numbers (or left blank for 0).")
             return None
 
+        # The grid structure guarantees N variables = N equations (Specification 1c)
         return A, b
 
-    def solve(self, method: str, A: List[List[float]], b: List[float], params: Dict[str, Any]) -> Dict[str, Any]:
+    def solve(self, data: SystemData) -> Dict[str, Any]:
         """
-        The main solving dispatch method. Replace this placeholder with actual
-        numerical solving implementations.
+        Dispatches the solving request to the correct solver implementation.
         """
-        N = len(A)
         start_time = time.time()
 
-        # --- Placeholder Results ---
-        solution = [float(i + 1) for i in range(N)]  # Example solution
-        iterations = "N/A"
-        execution_time = 0.0
-
         try:
-            if method in ["Gauss Elimination", "Gauss-Jordan"]:
-                # Implement partial pivoting here (Specification 8)
-                time.sleep(0.5)  # Simulate calculation time
-                # Your full Gauss Elimination/Gauss-Jordan logic goes here
+            # Factory provides the specific solver instance
+            solver = SolverFactory.get_solver(data)
+            results = solver.solve()
 
-                # Check for no solution / infinite solutions (Specification 6)
-                # if check_for_singularity(A): raise ValueError("Singular Matrix: No unique solution.")
-
-            elif method == "LU Decomposition":
-                # Check params for 'LU Form' (Doolittle, Crout, Cholesky)
-                lu_form = params.get("LU Form", "Doolittle Form")
-                # Implement partial pivoting (Doolittle form only) and LU decomposition logic
-                time.sleep(0.7)
-
-            elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-                # Check params for 'Initial Guess' and 'Stopping Condition'
-                initial_guess = params.get("Initial Guess", [0.0] * N)
-                stop_condition = params.get("Stopping Condition Type", "Number of Iterations")
-                stop_value = params.get("Stopping Value", 50)
-
-                # Implement convergence check (diagonal dominance) and iterative logic
-                time.sleep(1.0)
-                iterations = 35  # Example iteration count
-
-            else:
-                raise ValueError("Selected method is not implemented.")
-
-            execution_time = time.time() - start_time
-
-            return {
-                "success": True,
-                "solution": solution,
-                "execution_time": execution_time,
-                "iterations": iterations,
-                "method_used": method,
-                "precision": self.precision
-            }
+            # Add metadata back to results for GUI display
+            results["method_used"] = data.method
+            results["precision"] = data.precision
+            return results
 
         except ValueError as e:
+            # Handle solver-specific errors (e.g., convergence failure, singularity)
             return {
                 "success": False,
                 "error_message": str(e),
                 "execution_time": time.time() - start_time,
             }
         except Exception as e:
+            # Catch unexpected Python errors
             return {
                 "success": False,
                 "error_message": f"An unexpected error occurred: {str(e)}",
@@ -133,55 +206,69 @@ class NumericalSolver:
             }
 
 
-# --- 2. GUI APPLICATION CLASS ---
+# --- 4. GUI APPLICATION CLASS (Refactored) ---
 
 class NumericalSolverGUI:
     """
-    The main Tkinter application window.
+    The main Tkinter application window responsible for the interactive GUI
+    (Specifications 1-5).
     """
 
     def __init__(self, master):
         self.master = master
         master.title("Numerical Linear System Solver (Project Phase 1)")
 
-        # Initialize Solver Backend
+        # Initialize the coordinator backend
         self.solver = NumericalSolver()
 
-        # --- Variables ---
+        # --- Tkinter Variables for inputs ---
         self.method_var = tk.StringVar(master, value="Gauss Elimination")
         self.precision_var = tk.StringVar(master, value="5")  # Default precision (Spec 4)
+        self.n_var = tk.StringVar(master, value="3")  # Default N=3 (Number of variables)
 
-        # Dynamic parameter variables
+        # Dynamic parameter variables, initialized with defaults
         self.lu_form_var = tk.StringVar(master, value="Doolittle Form")
         self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")  # Example for 3x3
         self.stop_condition_type_var = tk.StringVar(master, value="Number of Iterations")
         self.stop_value_var = tk.StringVar(master, value="50")
 
-        # --- Setup Styles ---
+        # Storage for the dynamically created matrix input widgets
+        self.matrix_entry_widgets: List[List[tk.Entry]] = []
+
+        # --- Setup Appearance ---
         self.setup_styles()
 
-        # --- Setup Main Frames ---
-        self.main_frame = ttk.Frame(master, padding="15 15 15 15")
+        # --- Setup Main Frames (Two-column layout) ---
+        self.main_frame = ttk.Frame(master, padding="15 15 15 15", style='Main.TFrame')
         self.main_frame.pack(fill='both', expand=True)
-        self.main_frame.columnconfigure(0, weight=1)
-        self.main_frame.columnconfigure(1, weight=1)
+        self.main_frame.columnconfigure(0, weight=1)  # Left input column
+        self.main_frame.columnconfigure(1, weight=1)  # Right output column
 
         # --- Input Frame (Left Side) ---
-        self.input_frame = ttk.LabelFrame(self.main_frame, text="1. System Input & Method Selection", padding="10")
+        self.input_frame = ttk.LabelFrame(self.main_frame, text="1. System Input & Method Selection", padding="10",
+                                          style='Input.TLabelframe')
         self.input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.input_frame.columnconfigure(0, weight=1)
 
-        # 1. System of Equations Input (Specification 1)
-        ttk.Label(self.input_frame, text="Enter Augmented Matrix [A|b] (e.g., '1 2 | 5' per line):").pack(fill='x',
-                                                                                                          pady=(0, 5))
-        self.input_text = scrolledtext.ScrolledText(self.input_frame, wrap=tk.WORD, height=8, width=40,
-                                                    font=("Consolas", 10))
-        self.input_text.pack(fill='both', expand=True, pady=(0, 10))
-        # Initial placeholder data for quick testing (3x3 system)
-        self.input_text.insert(tk.END, "4 1 -1 | 3\n2 7 1 | 19\n1 -3 12 | 31")
+        # --- N Input and Matrix Generation Block ---
+        n_frame = ttk.Frame(self.input_frame)
+        n_frame.pack(fill='x', pady=(0, 5))
+        ttk.Label(n_frame, text="N (Variables/Equations):", style='Title.TLabel').pack(side=tk.LEFT, padx=(0, 5))
+        self.n_entry = ttk.Entry(n_frame, textvariable=self.n_var, width=5)
+        self.n_entry.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(n_frame, text="Generate Matrix", command=self.generate_matrix_input, style='Small.TButton').pack(
+            side=tk.LEFT)
+
+        # Container frame for the dynamic matrix grid
+        ttk.Label(self.input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(5, 5))
+        self.matrix_input_container = ttk.Frame(self.input_frame, style='Matrix.TFrame')
+        self.matrix_input_container.pack(fill='x', expand=False, pady=(0, 10))
+
+        # Initial draw of the 3x3 matrix input grid
+        self.generate_matrix_input()
 
         # 2. Method Selection (Specification 2)
-        ttk.Label(self.input_frame, text="2. Choose Solving Method:").pack(fill='x', pady=(5, 5))
+        ttk.Label(self.input_frame, text="2. Choose Solving Method:", style='Title.TLabel').pack(fill='x', pady=(5, 5))
         self.method_options = [
             "Gauss Elimination",
             "Gauss-Jordan",
@@ -192,21 +279,24 @@ class NumericalSolverGUI:
         self.method_dropdown = ttk.Combobox(self.input_frame,
                                             textvariable=self.method_var,
                                             values=self.method_options,
-                                            state="readonly")
+                                            state="readonly",
+                                            style='TCombobox')
         self.method_dropdown.pack(fill='x', pady=(0, 10))
-        self.method_var.trace_add("write", self.update_parameters_frame)  # Dynamic update
+        # Trigger dynamic parameter update whenever the method changes
+        self.method_var.trace_add("write", self.update_parameters_frame)
 
         # 3. Dynamic Parameters Frame (Specification 3)
-        self.params_frame = ttk.LabelFrame(self.input_frame, text="3. Method Parameters", padding="10")
+        self.params_frame = ttk.LabelFrame(self.input_frame, text="3. Method Parameters", padding="10",
+                                           style='Input.TLabelframe')
         self.params_frame.pack(fill='x', pady=(5, 10))
-        self.update_parameters_frame()  # Initial call
+        self.update_parameters_frame()  # Initial call to display default parameters
 
         # 4. Precision Input (Specification 4)
         precision_frame = ttk.Frame(self.input_frame)
         precision_frame.pack(fill='x', pady=(5, 5))
-        ttk.Label(precision_frame, text="4. Precision (Significant Figures):").pack(side=tk.LEFT)
-        self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10)
-        self.precision_entry.pack(side=tk.RIGHT, fill='x', expand=True, padx=(10, 0))
+        ttk.Label(precision_frame, text="4. Precision (Significant Figures):", style='Title.TLabel').pack(side=tk.LEFT)
+        self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, style='TEntry')
+        self.precision_entry.pack(side=tk.RIGHT, padx=(10, 0))
 
         # 5. Solve Button (Specification 5)
         self.solve_button = ttk.Button(self.input_frame, text="5. SOLVE SYSTEM", command=self.solve_system,
@@ -214,83 +304,180 @@ class NumericalSolverGUI:
         self.solve_button.pack(fill='x', pady=(15, 0))
 
         # --- Output Frame (Right Side) ---
-        self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="10")
+        self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="10",
+                                           style='Output.TLabelframe')
         self.output_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         self.output_frame.columnconfigure(0, weight=1)
 
-        ttk.Label(self.output_frame, text="Results Output:").pack(fill='x', pady=(0, 5))
+        # Output area for the solution vector (X1, X2, ...)
+        ttk.Label(self.output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
         self.results_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, height=20, width=50,
-                                                      font=("Consolas", 10), state=tk.DISABLED)
+                                                      font=("Consolas", 10), state=tk.DISABLED, bg="#f0f0f0",
+                                                      fg="#000080")
         self.results_text.pack(fill='both', expand=True)
 
-        ttk.Label(self.output_frame, text="Details & Logs:").pack(fill='x', pady=(10, 5))
+        # Output area for execution time, iterations, and parameters (Specification 7)
+        ttk.Label(self.output_frame, text="Details & Logs:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
         self.log_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, height=5, width=50,
-                                                  font=("Consolas", 9), state=tk.DISABLED)
+                                                  font=("Consolas", 9), state=tk.DISABLED, bg="#f0f0f0", fg="#333333")
         self.log_text.pack(fill='both', expand=True)
 
     def setup_styles(self):
-        """Sets up custom styles for a modern look."""
+        """Sets up custom styles for a modern, colorful look using the 'clam' theme."""
         style = ttk.Style()
-        style.theme_use('clam')  # Use a theme that supports custom styling
+        style.theme_use('clam')
 
-        # General widget style
-        style.configure("TLabel", font=("Arial", 10))
-        style.configure("TButton", font=("Arial", 10, "bold"), padding=6)
-        style.configure("Solve.TButton", font=("Arial", 12, "bold"), foreground='white', background='#007BFF')
-        style.map("Solve.TButton", background=[('active', '#0056b3')])
-        style.configure("TEntry", padding=4)
-        style.configure("TLabelframe", font=("Arial", 11, "bold"), foreground='#333333')
+        # Color Palette definition
+        PRIMARY_BLUE = "#007BFF"  # Accent color for input titles
+        SECONDARY_GREEN = "#28A745"  # Accent color for the solve button and output frame
+        BACKGROUND_LIGHT = "#f8f9fa"
+        BACKGROUND_DARK = "#e9ecef"
+        TEXT_DARK = "#343A40"
+
+        # General Frame/Background
+        style.configure("Main.TFrame", background=BACKGROUND_LIGHT)
+
+        # Labels and Titles
+        style.configure("TLabel", font=("Arial", 10), background=BACKGROUND_LIGHT, foreground=TEXT_DARK)
+        style.configure("Title.TLabel", font=("Arial", 11, "bold"), foreground=PRIMARY_BLUE)
+
+        # Label Frames (Containers)
+        style.configure("Input.TLabelframe", font=("Arial", 12, "bold"), foreground=PRIMARY_BLUE,
+                        background=BACKGROUND_DARK)
+        style.configure("Input.TLabelframe.Label", background=BACKGROUND_DARK, foreground=PRIMARY_BLUE)
+        style.configure("Output.TLabelframe", font=("Arial", 12, "bold"), foreground=SECONDARY_GREEN,
+                        background=BACKGROUND_DARK)
+        style.configure("Output.TLabelframe.Label", background=BACKGROUND_DARK, foreground=SECONDARY_GREEN)
+
+        # Buttons
+        style.configure("TButton", font=("Arial", 10), padding=6, background=BACKGROUND_LIGHT)
+        style.configure("Small.TButton", font=("Arial", 9), padding=3, background='#D0D0D0')
+        style.configure("Solve.TButton", font=("Arial", 12, "bold"), foreground='white', background=SECONDARY_GREEN)
+        # Map ensures button color changes on interaction (active/hover)
+        style.map("Solve.TButton", background=[('active', '#1E7E34'), ('!disabled', SECONDARY_GREEN)])
+
+        # Entries
+        style.configure("TEntry", padding=4, background='white')
+        style.configure("Matrix.TFrame", background=BACKGROUND_LIGHT)
 
     def clear_params_frame(self):
-        """Removes all widgets from the parameters frame."""
+        """Removes all widgets from the parameters frame to prepare for dynamic content."""
         for widget in self.params_frame.winfo_children():
             widget.destroy()
 
+    def generate_matrix_input(self):
+        """
+        Dynamically generates N x (N+1) Entry widgets for matrix input based on N.
+        This enforces Specification 1c (N variables = N equations).
+        """
+        try:
+            N = int(self.n_var.get())
+            if N <= 0 or N > 10:
+                messagebox.showwarning("Input Warning", "N must be between 1 and 10 for a usable layout.")
+                self.n_var.set("3")  # Reset to default if out of range
+                N = 3
+        except ValueError:
+            messagebox.showerror("Input Error", "N must be an integer.")
+            self.n_var.set("3")
+            return
+
+        # Clear existing entries/widgets in the container
+        for widget in self.matrix_input_container.winfo_children():
+            widget.destroy()
+
+        self.matrix_entry_widgets = []
+
+        # Create Header Row (X1, X2, ..., | B)
+        for j in range(N):
+            ttk.Label(self.matrix_input_container, text=f"X{j + 1}", font=("Arial", 10, "bold"),
+                      foreground="#007BFF").grid(row=0, column=j, padx=2, pady=2)
+        ttk.Label(self.matrix_input_container, text=" | B", font=("Arial", 10, "bold"), foreground="#DC3545").grid(
+            row=0, column=N, padx=5, pady=2)
+
+        # Create N rows and N+1 columns of Entry fields
+        for i in range(N):
+            row_entries = []
+            for j in range(N + 1):
+                entry = ttk.Entry(self.matrix_input_container, width=5, style='TEntry')
+
+                if j == N:
+                    # Constant vector (B) column styling
+                    entry.grid(row=i + 1, column=j, padx=(10, 2), pady=2, sticky='ew')
+                    entry.config(foreground="#DC3545")  # Red for constant vector
+                else:
+                    # Coefficient matrix (A) column styling
+                    entry.grid(row=i + 1, column=j, padx=2, pady=2, sticky='ew')
+                    entry.config(foreground="#007BFF")  # Blue for coefficients
+
+                row_entries.append(entry)
+            self.matrix_entry_widgets.append(row_entries)
+
+        # Populate a default 3x3 system for easy testing
+        initial_data = [
+            [4.0, 1.0, -1.0, 3.0],
+            [2.0, 7.0, 1.0, 19.0],
+            [1.0, -3.0, 12.0, 31.0]
+        ]
+
+        for i in range(min(N, 3)):  # Only fill up to N=3 for the initial example
+            for j in range(N + 1):
+                if j < len(initial_data[i]):
+                    self.matrix_entry_widgets[i][j].delete(0, tk.END)
+                    self.matrix_entry_widgets[i][j].insert(0, str(initial_data[i][j]))
+
     def update_parameters_frame(self, *args):
         """
-        Dynamically updates the parameter fields based on the selected method.
+        Dynamically updates the parameter input fields based on the selected method.
         (Specification 3)
         """
         self.clear_params_frame()
         method = self.method_var.get()
 
         if method == "LU Decomposition":
-            ttk.Label(self.params_frame, text="LU Form:").pack(fill='x', pady=(0, 5))
+            # Requires LU form selection
+            ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(0, 5))
             lu_options = ["Doolittle Form", "Crout Form", "Cholesky Form"]
             ttk.Combobox(self.params_frame,
                          textvariable=self.lu_form_var,
                          values=lu_options,
-                         state="readonly").pack(fill='x', pady=(0, 10))
+                         state="readonly",
+                         style='TCombobox').pack(fill='x', pady=(0, 10))
 
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-            # Initial Guess Input
-            ttk.Label(self.params_frame, text="Initial Guess (comma-separated):").pack(fill='x', pady=(0, 5))
-            ttk.Entry(self.params_frame, textvariable=self.initial_guess_var).pack(fill='x', pady=(0, 10))
+            # Requires initial guess and stopping condition
 
-            # Stopping Condition Type
-            ttk.Label(self.params_frame, text="Stopping Condition Type:").pack(fill='x', pady=(0, 5))
+            # Initial Guess Input
+            ttk.Label(self.params_frame, text="Initial Guess (comma-separated):", style='TLabel').pack(fill='x',
+                                                                                                       pady=(0, 5))
+            ttk.Entry(self.params_frame, textvariable=self.initial_guess_var, style='TEntry').pack(fill='x',
+                                                                                                   pady=(0, 10))
+
+            # Stopping Condition Type (Dropdown)
+            ttk.Label(self.params_frame, text="Stopping Condition Type:", style='TLabel').pack(fill='x', pady=(0, 5))
             stop_type_options = ["Number of Iterations", "Absolute Relative Error"]
             ttk.Combobox(self.params_frame,
                          textvariable=self.stop_condition_type_var,
                          values=stop_type_options,
-                         state="readonly").pack(fill='x', pady=(0, 10))
+                         state="readonly",
+                         style='TCombobox').pack(fill='x', pady=(0, 10))
 
-            # Stopping Value
-            ttk.Label(self.params_frame, text="Stopping Value (e.g., Max Iterations or Error %):").pack(fill='x',
-                                                                                                        pady=(0, 5))
-            ttk.Entry(self.params_frame, textvariable=self.stop_value_var).pack(fill='x')
+            # Stopping Value (Entry)
+            ttk.Label(self.params_frame, text="Stopping Value (e.g., Max Iterations or Error %):", style='TLabel').pack(
+                fill='x', pady=(0, 5))
+            ttk.Entry(self.params_frame, textvariable=self.stop_value_var, style='TEntry').pack(fill='x')
 
     def parse_guess_input(self, guess_str: str) -> Optional[List[float]]:
         """Parses the comma-separated initial guess string into a list of floats."""
         try:
+            # Split by comma, strip spaces, filter empty parts, convert to float
             parts = [p.strip() for p in guess_str.split(',') if p.strip()]
             return [float(p) for p in parts]
         except ValueError:
-            messagebox.showerror("Input Error", "Initial Guess must be a comma-separated list of numbers.")
+            # Returns None if any part is not a valid number
             return None
 
     def get_user_params(self) -> Dict[str, Any]:
-        """Collects all dynamic parameters based on the currently selected method."""
+        """Collects all dynamic parameters from the GUI based on the selected method."""
         method = self.method_var.get()
         params = {}
 
@@ -298,14 +485,11 @@ class NumericalSolverGUI:
             params["LU Form"] = self.lu_form_var.get()
 
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-            guess_list = self.parse_guess_input(self.initial_guess_var.get())
-            if guess_list is None:
-                # Raise an exception or handle error if initial guess is invalid
-                return {"error": "Invalid Initial Guess Format"}
-
-            params["Initial Guess"] = guess_list
+            # Store raw guess string first, validate size later in solve_system
+            params["Initial Guess (Raw)"] = self.initial_guess_var.get()
             params["Stopping Condition Type"] = self.stop_condition_type_var.get()
 
+            # Validate Stopping Value format
             try:
                 stop_value = float(self.stop_value_var.get())
                 params["Stopping Value"] = stop_value
@@ -315,7 +499,7 @@ class NumericalSolverGUI:
         return params
 
     def update_results_display(self, text: str, log: str):
-        """Helper to safely update the ScrolledText widgets."""
+        """Helper to safely enable, clear, update, and disable ScrolledText widgets."""
         for widget in [self.results_text, self.log_text]:
             widget.config(state=tk.NORMAL)
             widget.delete(1.0, tk.END)
@@ -327,23 +511,32 @@ class NumericalSolverGUI:
             widget.config(state=tk.DISABLED)
 
     def solve_system(self):
-        """Handles the main logic when the Solve button is clicked."""
-        self.update_results_display("Solving...", "Processing input and calculating...")
+        """
+        Main function executed when the 'SOLVE SYSTEM' button is pressed.
+        Coordinates input validation, DTO creation, and calls the solver backend.
+        """
+        self.update_results_display("Solving...", "Processing input and creating DTO...")
+
+        # 0. Get N (Number of Variables)
+        try:
+            N = int(self.n_var.get())
+        except ValueError:
+            messagebox.showerror("Input Error", "N must be an integer.")
+            self.update_results_display("", "ERROR: N input is invalid.")
+            return
 
         # 1. Get and Validate Precision (Specification 4)
         try:
-            precision = int(self.precision_var.get() or 5)  # Default to 5 if empty
+            precision = int(self.precision_var.get() or 5)  # Default to 5 sig figs
             if precision <= 0 or precision > 15:
                 raise ValueError("Precision must be a positive integer (max 15).")
-            self.solver.set_precision(precision)
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
             self.update_results_display("", f"ERROR: {e}")
             return
 
         # 2. Get and Validate System Input (Specification 1)
-        raw_input = self.input_text.get(1.0, tk.END)
-        parsed_matrix = self.solver.parse_input(raw_input)
+        parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
 
         if parsed_matrix is None:
             # Error handled inside parse_input via messagebox
@@ -359,37 +552,52 @@ class NumericalSolverGUI:
             self.update_results_display("", f"ERROR: {params['error']}")
             return
 
-        # --- 4. Call Solver ---
+        # 4. Final Parameter Validation (Specific to Iterative methods)
         method = self.method_var.get()
+        if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
+            raw_guess = params.pop("Initial Guess (Raw)")  # Get raw string
+            guess_list = self.parse_guess_input(raw_guess)  # Parse into float list
 
-        # Check if initial guess size matches system size for iterative methods
-        if method in ["Jacobi-Iteration", "Gauss-Seidel"] and len(params.get("Initial Guess", [])) != len(A):
-            messagebox.showerror("Input Error",
-                                 f"Initial guess must have {len(A)} components, matching the number of variables.")
-            self.update_results_display("", "ERROR: Initial guess size mismatch.")
-            return
+            if guess_list is None:
+                messagebox.showerror("Input Error", "Initial Guess must be a comma-separated list of numbers.")
+                self.update_results_display("", "ERROR: Invalid initial guess format.")
+                return
+
+            if len(guess_list) != N:
+                messagebox.showerror("Input Error",
+                                     f"Initial guess must have {N} components, matching the number of variables.")
+                self.update_results_display("", "ERROR: Initial guess size mismatch.")
+                return
+
+            params["Initial Guess"] = guess_list  # Store validated list in params
+
+        # --- 5. Create DTO and Call Solver ---
+        system_data = SystemData(A, b, method, precision, params)
+        self.update_results_display("Solving...", f"Dispatching to {method} Solver...")
 
         try:
-            results = self.solver.solve(method, A, b, params)
+            # Dispatch DTO to the solver entry point
+            results = self.solver.solve(system_data)
         except Exception as e:
+            # Catch unexpected errors during the Factory/Solver process
             results = {
                 "success": False,
                 "error_message": f"Critical Failure during solving: {e}",
                 "execution_time": 0.0,
             }
 
-        # --- 5. Display Results (Specifications 5, 6, 7) ---
+        # --- 6. Display Results (Specifications 5, 6, 7) ---
         if results["success"]:
             sol_text = ""
+            # Format the solution based on the requested precision
             for i, val in enumerate(results["solution"]):
-                # Format solution to the requested precision
-                # Note: f-string formatting handles significant figures loosely;
-                # for true significant figures, you need more complex formatting logic.
-                # We'll use simple rounding here.
                 formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
                 sol_text += f"X{i + 1} = {formatted_val}\n"
 
             output_text = f"--- Solution ---\n\n{sol_text}"
+
+            # Prepare logs
+            log_params = {k: v for k, v in params.items()}
 
             log_text = (
                 f"Method Used: {results['method_used']}\n"
@@ -397,15 +605,15 @@ class NumericalSolverGUI:
                 f"Execution Time: {results['execution_time']:.6f} seconds\n"
             )
 
-            if results["iterations"] != "N/A":
-                log_text += f"Iterations Taken: {results['iterations']}\n"
+            if results.get("iterations") != "N/A":
+                log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
 
-            # Log parameters used
+            # Display parameters used
             log_text += "\nParameters Used:\n"
-            log_text += json.dumps(params, indent=2)
+            log_text += json.dumps(log_params, indent=2)
 
         else:
-            # No solution or infinite solutions / error (Specification 6)
+            # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
             output_text = (
                 f"--- Result ---\n\n"
                 f"SYSTEM ERROR:\n"
@@ -414,17 +622,17 @@ class NumericalSolverGUI:
             log_text = (
                 f"Method Used: {method}\n"
                 f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
-                f"Input Data:\n"
-                f"A = {A}\n"
-                f"b = {b}\n"
+                f"Input Data Size: {N}x{N}\n"
             )
 
         self.update_results_display(output_text, log_text)
 
 
 if __name__ == '__main__':
+    # Debug print to confirm script is running
+    print("Starting Numerical Solver GUI application...")
     # Set up the main window
     root = tk.Tk()
     app = NumericalSolverGUI(root)
-    # Start the Tkinter event loop
+    # Start the Tkinter event loop, which handles all GUI interactions
     root.mainloop()

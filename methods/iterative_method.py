@@ -1,11 +1,13 @@
 import timeit
 import numpy as np
 
-class iterative_method:
-    def __init__(self,X0, A, B, iterations, tol, jacobi: bool):
+from methods.AbstractSolver import AbstractSolver
+
+
+class iterative_method(AbstractSolver):
+    def __init__(self, X0, A, B, precision, iterations, tol, jacobi: bool, b):
+        super().__init__(A, B, precision)
         self.X = np.array(X0, dtype=float)
-        self.A = np.array(A, dtype=float)
-        self.B = np.array(B, dtype=float)
         self.iterations = iterations
         self.tol = tol
         self.jacobi = jacobi
@@ -13,21 +15,21 @@ class iterative_method:
 
     def solve(self):
       start_time = timeit.default_timer()
-      n = len(self.B)
+      n = len(self.b)
       for it in range(self.iterations):
           old_x = self.X.copy()
 
           for i in range(n):
               if self.jacobi:
-                  sum1 = np.dot(self.A[i, :i], old_x[:i])
-                  sum2 = np.dot(self.A[i, i + 1:], old_x[i + 1:])
+                  sum1 = self.dot_with_rounding(self.A[i, :i], old_x[:i], self.round_sig_fig)
+                  sum2 = self.dot_with_rounding(self.A[i, i + 1:], old_x[i + 1:], self.round_sig_fig)
               else:
                   # these x values are the NEW updated ones because we’ve already computed them earlier in this iteration.
-                  sum1 = np.dot(self.A[i, :i], self.X[:i])
+                  sum1 = self.dot_with_rounding(self.A[i, :i], self.X[:i], self.round_sig_fig)
                   # these x values are the OLD ones because we’ve computed in this iteration yet.
-                  sum2 = np.dot(self.A[i, i + 1:], old_x[i + 1:])
+                  sum2 = self.dot_with_rounding(self.A[i, i + 1:], old_x[i + 1:], self.round_sig_fig)
 
-              self.X[i] = (self.B[i] - sum1 - sum2) / self.A[i, i]
+              self.X[i] = self.round_sig_fig((self.b[i] - sum1 - sum2) / self.A[i, i])
 
           # absolute relative error
           error = np.max(np.abs((self.X - old_x) / (self.X + 1e-12)))  # Division by zero protection
@@ -37,3 +39,8 @@ class iterative_method:
               return [time,it, self.X]
       return None
 
+    def dot_with_rounding(self, row, vec, adjust):
+        total = 0
+        for a, x in zip(row, vec):
+            total += adjust(a * x)
+        return adjust(total)
