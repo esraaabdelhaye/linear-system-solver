@@ -18,7 +18,7 @@ class Doolittle:
         self.decompose()
         if(self.er == -1):
             return
-        self.substitute(self.a, self.o, self.n, self.b, self.x)
+        self.substitute()
 
         endTime = timeit.default_timer()
         time = endTime - startTime
@@ -27,7 +27,8 @@ class Doolittle:
 
 
     def decompose(self): 
-        for i in range(self.n): #scaling factors
+        #getting scaling matrix
+        for i in range(self.n): 
             self.o[i] = i
             self.s[i] = abs(self.a[i, 0])
             for j in range(1, self.n):
@@ -36,9 +37,9 @@ class Doolittle:
 
 
         for k in range(self.n-1):
-            pivot(self.a, self.o, self.s, self.n, k)
+            self.pivot(self.a, self.o, self.s, self.n, k)
             if abs(self.a[self.o[k],k]) / self.s[self.o[k]] < self.tol:
-                er = -1
+                self.er = -1
                 return
             
             for i in range(k+1, self.n):
@@ -49,7 +50,8 @@ class Doolittle:
         if abs(self.a[self.o[self.n - 1], self.n - 1]) < self.tol:
             self.er = -1
 
-    def substitute(a, o, n, b, x):
+    def substitute(self):
+        a, o, n, b, x = self.a, self.o, self.n, self.b, self.x
         y = [0] * n
         y[o[0]] = b[o[0]]
         for i in range (1, n): 
@@ -64,4 +66,17 @@ class Doolittle:
             for j in range(i+1, n):
                 sum = sum + a[o[i],j] * x[j]
             x[i] = (y[o[i]] - sum) / a[o[i],i]
+
+    def pivot(self, a, o, s, n, k):
+        p = k 
+        big = abs(a[o[k],k]) / s[o[k]]
+        for i in range(k+1, n):
+            dummy = abs(a[o[i],k] / s[o[i]])
+            if (dummy > big):
+                big = dummy
+                p = i
+        dummy = o[p]
+        o[p] = o[k]
+        o[k] = dummy
+
         

@@ -1,36 +1,68 @@
 import numpy as np
 import timeit
-from doolittle import Doolittle
 
 class Crout:
-    def __init__(self, a, b, n, x, tol):
-        self.doolittle = Doolittle(self, a, b, n, tol, er, x = [])
+    def __init__(self, a, b, n, tol):
         self.a = a
         self.b = b
         self.n = n
-        self.x = x
+        self.x = [0] * n
         self.tol = tol
         self.er = 0
         self.o = [0] * n
-        self.x = [0] * n
-
+        self.s = [0] * n
+  
     def solve(self):
         startTime = timeit.default_timer()
         self.decompose()
-        a = a.T
-        if(self.er != -1):
-            self.substitute(self.a, self.o, self.n, self.b, self.x)
-        else: return
-
+        if(self.er == -1):
+            return
+        self.substitute()
         endTime = timeit.default_timer()
         time = endTime - startTime
-
         return self.x
-
+    
     def decompose(self):
-        self.doolittle.decompose()
+        #getting scaling matrix
+        for i in range(self.n):
+            self.o[i] = i
+            self.s[i] = abs(self.a[i, 0])
+            for j in range(1, self.n):
+                if abs(self.a[i, j]) > self.s[i]:
+                    self.s[i] = abs(self.a[i, j])
 
-    def substitute(a, o, n, b, x):
+        
+        for j in range(self.n):  #column j
+
+            #pivoting (on column j)
+            self.pivot(self.a, self.o, self.s, self.n, j)
+
+            #check if scaled pivot is less than tol
+            if abs(self.a[self.o[j], j]) / self.s[self.o[j]] < self.tol:
+                self.er = -1
+                return
+
+            #calculate L(i, j)
+            for i in range(j, self.n):
+                sum = self.a[self.o[i], j]
+                for k in range(j):
+                    sum -= self.a[self.o[i], k] * self.a[self.o[k], j]
+                self.a[self.o[i], j] = sum  #L(i, j)
+
+            #check zero pivot after building L(j,j)
+            if abs(self.a[self.o[j], j]) < self.tol:
+                self.er = -1
+                return
+
+            #calculate U(j, i)
+            for i in range(j+1, self.n):
+                sum = self.a[self.o[j], i]
+                for k in range(j):
+                    sum -= self.a[self.o[j], k] * self.a[self.o[k], i]
+                self.a[self.o[j], i] = sum / self.a[self.o[j], j]  #U(j, i)
+
+    def substitute(self):
+        a, o, n, b, x = self.a, self.o, self.n, self.b, self.x
         #forward sub
         y = [0] * n
         y[o[0]] = b[o[0]] / a[o[0], 0]
@@ -43,10 +75,22 @@ class Crout:
         #backward sub
         x[n-1] = y[o[n-1]] 
         for i in range (n-2, -1, -1):
-            sum = 0
+            sum = y[o[i]]
             for j in range(i+1, n):
-                sum = sum + a[o[i],j] * x[j]
-            x[i] = (y[o[i]] - sum) 
+                sum = sum - a[o[i],j] * x[j]
+            x[i] = sum
+
+    def pivot(self, a, o, s, n, k):
+        p = k 
+        big = abs(a[o[k],k]) / s[o[k]]
+        for i in range(k+1, n):
+            dummy = abs(a[o[i],k] / s[o[i]])
+            if (dummy > big):
+                big = dummy
+                p = i
+        dummy = o[p]
+        o[p] = o[k]
+        o[k] = dummy
 
 
 
