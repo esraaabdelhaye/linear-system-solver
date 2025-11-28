@@ -1,11 +1,11 @@
 
-from System.SystemData import SystemData
-from methods.IterativeMethod import IterativeMethod
-from methods.Crout import Crout
-from methods.Doolittle import Doolittle
 from methods.AbstractSolver import AbstractSolver
 from methods.GaussElimination import GaussElimination
 from methods.GaussJordan import GaussJordan
+from methods.Doolittle import Doolittle
+from methods.Crout import Crout
+from methods.IterativeMethod import IterativeMethod
+from System.SystemData import SystemData
 
 
 class SolverFactory:
@@ -16,10 +16,11 @@ class SolverFactory:
     SOLVERS = {
         "Gauss Elimination": GaussElimination,
         "Gauss-Jordan": GaussJordan,
-        "Doolittle Form": Doolittle,
-        "Crout Form": Crout,
-        # "Cholesky Form": CholeskySolver
-        "iterative-method": IterativeMethod,
+        "doolittle": Doolittle,
+        "crout": Crout,
+        # "cholesky": CholeskySolver
+        "Jacobi-Iteration": IterativeMethod,
+        "Gauss-Seidel": IterativeMethod,
     }
 
     @staticmethod
@@ -28,7 +29,16 @@ class SolverFactory:
         method = SolverFactory.SOLVERS.get(data.method)
         if method == "LU Decomposition":
             method = data.params["LU Form"]
-        solver_class = SolverFactory.SOLVERS.get(method)
+
+        solver_class = SolverFactory.SOLVERS.get(data.method)
+
+        if data.method == "Jacobi-Iteration":
+            data.params["Jacobi"] = 1
+        else:
+            data.params["Jacobi"] = 0
+
+
+
         if not solver_class:
             raise ValueError(f"Solver for method '{data.method}' is not implemented.")
         # Instantiate the correct solver with the DTO

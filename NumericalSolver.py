@@ -63,15 +63,17 @@ class NumericalSolver:
             # Add metadata back to results for GUI display
             results["method_used"] = data.method
             results["precision"] = data.precision
+            results["execution_time"] = time.time() - start_time
+
             return results
 
-        except ValueError as e:
-            # Handle solver-specific errors (e.g., convergence failure, singularity)
-            return {
-                "success": False,
-                "error_message": str(e),
-                "execution_time": time.time() - start_time,
-            }
+        # except ValueError as e:
+        #     # Handle solver-specific errors (e.g., convergence failure, singularity)
+        #     return {
+        #         "success": False,
+        #         "error_message": str(e),
+        #         "execution_time": time.time() - start_time,
+        #     }
         except Exception as e:
             # Catch unexpected Python errors
             return {

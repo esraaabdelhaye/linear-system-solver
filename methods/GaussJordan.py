@@ -38,11 +38,11 @@ class GaussJordan(AbstractSolver):
         A = self.A.astype(float).copy()
         b = self.b.astype(float).copy()
 
-        if self.single_step:
-            self.add_step(("Initial System", A.copy(), b.copy()))
+        # if self.single_step:
+        #     self.add_step(("Initial System", A.copy(), b.copy()))
 
         # Get scaling factors
-        scales = self.get_scales() if self.use_scaling else np.ones(self.n)
+        # scales = self.get_scales() if self.use_scaling else np.ones(self.n)
 
         # Gauss-Jordan Elimination (to RREF)
         for k in range(self.n):
@@ -52,7 +52,8 @@ class GaussJordan(AbstractSolver):
             pivot_row = k
 
             for i in range(k, self.n):
-                ratio = abs(A[i][k]) / scales[i]
+                ratio = abs(A[i][k]) /1
+                #scales[i]
                 if ratio > max_ratio:
                     max_ratio = ratio
                     pivot_row = i
@@ -61,11 +62,11 @@ class GaussJordan(AbstractSolver):
             if pivot_row != k:
                 A[[k, pivot_row]] = A[[pivot_row, k]]
                 b[[k, pivot_row]] = b[[pivot_row, k]]
-                if self.use_scaling:
-                    scales[[k, pivot_row]] = scales[[pivot_row, k]]
+                # if self.use_scaling:
+                #     scales[[k, pivot_row]] = scales[[pivot_row, k]]
 
-                if self.single_step:
-                    self.add_step((f"Pivot: Swap row {k} ↔ row {pivot_row}", A.copy(), b.copy()))
+                # if self.single_step:
+                #     self.add_step((f"Pivot: Swap row {k} ↔ row {pivot_row}", A.copy(), b.copy()))
 
             # Check for zero pivot (basic validation)
             pivot = A[k][k]
@@ -76,8 +77,8 @@ class GaussJordan(AbstractSolver):
             A[k] /= pivot
             b[k] /= pivot
 
-            if self.single_step:
-                self.add_step((f"Normalize: R{k} = R{k} / {pivot:.4f}", A.copy(), b.copy()))
+            # if self.single_step:
+            #     self.add_step((f"Normalize: R{k} = R{k} / {pivot:.4f}", A.copy(), b.copy()))
 
             # Eliminate ALL other rows (above and below)
             for i in range(self.n):
@@ -89,12 +90,12 @@ class GaussJordan(AbstractSolver):
                     A[i] -= factor * A[k]
                     b[i] -= factor * b[k]
 
-                    if self.single_step:
-                        self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
-                                       A.copy(), b.copy()))
-
-        if self.single_step:
-            self.add_step(("Reduced Row Echelon Form (RREF)", A.copy(), b.copy()))
+        #             if self.single_step:
+        #                 self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
+        #                                A.copy(), b.copy()))
+        #
+        # if self.single_step:
+        #     self.add_step(("Reduced Row Echelon Form (RREF)", A.copy(), b.copy()))
 
         # Solution is directly in b vector (since A is now identity matrix)
         x = b.copy()
