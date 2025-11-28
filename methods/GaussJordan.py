@@ -33,7 +33,7 @@ class GaussJordan(AbstractSolver):
         Raises:
             ValueError: If zero pivot is encountered
         """
-        self.validate()
+
 
         A = self.A.astype(float).copy()
         b = self.b.astype(float).copy()
