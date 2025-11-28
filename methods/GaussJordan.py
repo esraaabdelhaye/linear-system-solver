@@ -1,7 +1,7 @@
 import numpy as np
-
+from System.SystemData import SystemData
 from methods.AbstractSolver import AbstractSolver
-
+from typing import  Dict, Any
 
 class GaussJordan(AbstractSolver):
     """
@@ -9,7 +9,7 @@ class GaussJordan(AbstractSolver):
     Reduces the augmented matrix to reduced row echelon form (RREF).
     """
 
-    def __init__(self, A, b, precision=6, single_step=False, use_scaling=False):
+    def __init__(self, data: SystemData):
         """
         Initialize Gauss-Jordan solver.
 
@@ -20,10 +20,10 @@ class GaussJordan(AbstractSolver):
             single_step: Enable step-by-step recording
             use_scaling: Enable scaled partial pivoting (Bonus #3)
         """
-        super().__init__(A, b, precision, single_step)
-        self.use_scaling = use_scaling
+        super().__init__(data)
+        self.use_scaling = data.params["use_scaling"]
 
-    def solve(self):
+    def solve(self) -> Dict[str, Any]:
         """
         Solve the system using Gauss-Jordan elimination to RREF.
 
@@ -103,4 +103,4 @@ class GaussJordan(AbstractSolver):
         for i in range(self.n):
             x[i] = self.round_sig_fig(x[i])
 
-        return x
+        return {"sol": x}

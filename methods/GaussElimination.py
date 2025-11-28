@@ -1,7 +1,7 @@
 import numpy as np
-import System.SystemData as SystemData
+from System.SystemData import SystemData
 from methods.AbstractSolver import AbstractSolver
-
+from typing import  Dict, Any
 
 class GaussElimination(AbstractSolver):
     """
@@ -9,7 +9,7 @@ class GaussElimination(AbstractSolver):
     Supports optional scaling and single-step mode.
     """
 
-    def __init__(self, SystemData):
+    def __init__(self, data: SystemData):
         """
         Initialize Gauss Elimination solver.
 
@@ -20,10 +20,10 @@ class GaussElimination(AbstractSolver):
             single_step: Enable step-by-step recording
             use_scaling: Enable scaled partial pivoting (Bonus #3)
         """
-        super().__init__(SystemData)
-        self.use_scaling = SystemData.use_scaling
+        super().__init__(data)
+        self.use_scaling = data.params["use_scaling"]
 
-    def solve(self):
+    def solve(self) -> Dict[str, Any]:
         """
         Solve the system using Gaussian Elimination with back substitution.
 
@@ -104,4 +104,4 @@ class GaussElimination(AbstractSolver):
             if self.single_step:
                 self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
 
-        return x
+        return {"sol": x}

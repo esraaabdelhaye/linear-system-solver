@@ -1,10 +1,11 @@
 import timeit
 from AbstractSolver import AbstractSolver
-
+from System.SystemData import SystemData
+from typing import  Dict, Any
 
 class Doolittle(AbstractSolver):
-    def __init__(self, A, b, precision=6, single_step=False):
-        super().__init__(A, b, precision, single_step)
+    def __init__(self, data: SystemData):
+        super().__init__(data)
         self.x = [0] * self.n
         self.tol = 1e-9
         self.er = 0
@@ -12,17 +13,14 @@ class Doolittle(AbstractSolver):
         self.s = [0] * self.n
         self.a = self.A.copy()
 
-    def solve(self):
-        startTime = timeit.default_timer()
+    def solve(self) -> Dict[str, Any]:
+
         self.validate()
         self.decompose()
         if (self.er == -1):
             return
         self.substitute()
-
-        endTime = timeit.default_timer()
-        time = endTime - startTime
-        return self.x, time
+        return {"sol": self.x}
 
     def decompose(self):
         # getting scaling matrix

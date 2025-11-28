@@ -1,6 +1,6 @@
 import math
 import numpy as np
-
+from typing import  Dict, Any
 from System.SystemData import SystemData
 
 
@@ -13,10 +13,10 @@ class AbstractSolver:
         self.n = data.N
         self.steps = []
 
-    def solve(self):
+    def solve(self)  -> Dict[str, Any]:
         pass
 
-    def validate(self):
+    def validate(self) :
         A = self.A
         b = self.b
         n = self.n

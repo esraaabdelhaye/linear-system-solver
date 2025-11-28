@@ -2,20 +2,20 @@ import timeit
 import numpy as np
 from System.SystemData import SystemData
 from methods.AbstractSolver import AbstractSolver
+from typing import  Dict, Any
 
 
 class iterative_method(AbstractSolver):
     def __init__(self, data : SystemData):
         super().__init__(data)
         # params
-        self.X = np.array(data.params.X0, dtype=float)
-        self.iterations = data.params.iterations
-        self.tol = data.params.tol
-        self.jacobi = data.params.jacobi
+        self.X = np.array(data.params["X0"], dtype=float)
+        self.iterations = data.params["iterations"]
+        self.tol = data.params["tolerance"]
+        self.jacobi = data.params["jacobi"]
 
 
-    def solve(self):
-      start_time = timeit.default_timer()
+    def solve(self)-> Dict[str, Any]:
       n = len(self.b)
       for it in range(self.iterations):
           old_x = self.X.copy()
@@ -35,10 +35,9 @@ class iterative_method(AbstractSolver):
           # absolute relative error
           error = np.max(np.abs((self.X - old_x) / (self.X + 1e-12)))  # Division by zero protection
           if error < self.tol:
-              end_time = timeit.default_timer()
-              time = end_time - start_time
-              return [time,it, self.X]
-      return None
+
+              return {"sol": self.X, "iterations" : it}
+      return {"sol": None}
 
     def dot_with_rounding(self, row, vec, adjust):
         total = 0
