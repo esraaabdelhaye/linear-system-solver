@@ -86,9 +86,11 @@ class GaussJordan(AbstractSolver):
                     continue
 
                 factor = A[i][k]
-                if abs(factor) > 1e-10:  # Only eliminate if factor is significant
-                    A[i] -= factor * A[k]
-                    b[i] -= factor * b[k]
+                if abs(factor) > 1e-10:
+                    A[i] = self.subtract_with_rounding(A[i], factor * A[k], self.round_sig_fig)
+                    # Only eliminate if factor is significant
+                    # A[i] = self.round_sig_fig(A[i] - factor * A[k])
+                    b[i] = self.round_sig_fig(b[i] - factor * b[k])
 
         #             if self.single_step:
         #                 self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
@@ -105,3 +107,6 @@ class GaussJordan(AbstractSolver):
             x[i] = self.round_sig_fig(x[i])
 
         return { "success": True,"sol": x}
+
+    def subtract_with_rounding(self, row, vec, adjust):
+        return np.array([adjust(a - x) for a, x in zip(row, vec)])

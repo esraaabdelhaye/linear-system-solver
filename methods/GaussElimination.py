@@ -66,11 +66,11 @@ class GaussElimination(AbstractSolver):
             if pivot_row != k:
                 A[[k, pivot_row]] = A[[pivot_row, k]]
                 b[[k, pivot_row]] = b[[pivot_row, k]]
-                if self.use_scaling:
-                    scales[[k, pivot_row]] = scales[[pivot_row, k]]
+                # if self.use_scaling:
+                #     scales[[k, pivot_row]] = scales[[pivot_row, k]]
 
-                if self.single_step:
-                    self.add_step((f"Pivot: Swap row {k} ↔ row {pivot_row}", A.copy(), b.copy()))
+                # if self.single_step:
+                #     self.add_step((f"Pivot: Swap row {k} ↔ row {pivot_row}", A.copy(), b.copy()))
 
             # Check for zero pivot (basic validation)
             if abs(A[k][k]) < 1e-10:
@@ -79,9 +79,10 @@ class GaussElimination(AbstractSolver):
             # Elimination step
             for i in range(k + 1, self.n):
                 if A[k][k] != 0:  # Extra safety check
-                    factor = A[i][k] / A[k][k]
-                    A[i, k:] -= factor * A[k, k:]  # Vectorized operation
-                    b[i] -= factor * b[k]
+                    factor = self.round_sig_fig(A[i][k] / A[k][k])
+                    A[i, k:] = self.subtract_with_rounding(A[i, k:], factor * A[k, k:], self.round_sig_fig)# Vectorized operation
+                    # A[i] = self.round_sig_fig(A[i] - factor * A[k])
+                    b[i] = self.round_sig_fig(b[i] - factor * b[k])
 
                     # if self.single_step:
                     #     self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
@@ -99,7 +100,7 @@ class GaussElimination(AbstractSolver):
 
         for i in reversed(range(self.n)):
             sum_ax = np.dot(A[i, i + 1:], x[i + 1:])
-            x[i] = (b[i] - sum_ax) / A[i][i]
+            x[i] = self.round_sig_fig((b[i] - sum_ax) / A[i][i])
             x[i] = self.round_sig_fig(x[i])
 
             # if self.single_step:
@@ -107,3 +108,6 @@ class GaussElimination(AbstractSolver):
 
         print(x)
         return {"success": True,"sol": x}
+
+    def subtract_with_rounding(self, row, vec, adjust):
+        return np.array([adjust(a - x) for a, x in zip(row, vec)])
