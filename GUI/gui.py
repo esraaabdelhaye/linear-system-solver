@@ -1,10 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
-from typing import List, Tuple, Dict, Any, Optional
-import Solver as NumericalSolver
-import copy  # Needed for safe matrix copying
-import System.SystemData as SystemData
+import time
 import json
+# Import necessary type hints
+from typing import List, Tuple, Dict, Any, Optional
+import copy  # Needed for safe matrix copying
+from Solver import NumericalSolver
+import System.SystemData as SystemData
+
 
 class NumericalSolverGUI:
     """
@@ -16,7 +19,10 @@ class NumericalSolverGUI:
         self.master = master
         master.title("Numerical Linear System Solver (Project Phase 1)")
 
-        # Initialize the coordinator backend
+        # FIX: The previous error occurred because an imported module was treated as a class.
+        # Since we cannot modify your external import (e.g., from 'Solver' module),
+        # we ensure that the placeholder class 'NumericalSolver' is correctly
+        # instantiated here, which is the correct pattern.
         self.solver = NumericalSolver()
 
         # --- Tkinter Variables for inputs ---
@@ -49,14 +55,24 @@ class NumericalSolverGUI:
         self.input_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
         self.input_frame.columnconfigure(0, weight=1)
 
-        # --- N Input and Matrix Generation Block ---
+        # --- N Input, Matrix Generation Block, and Solve Button (Combined) ---
+        # Changed the structure to group N input, Generate, and Solve buttons
         n_frame = ttk.Frame(self.input_frame)
-        n_frame.pack(fill='x', pady=(0, 10))
+        n_frame.pack(fill='x', pady=(10, 10))  # Adjusted top padding
+
+        # N Input controls (packed left)
         ttk.Label(n_frame, text="N (Variables/Equations):", style='Title.TLabel').pack(side=tk.LEFT, padx=(0, 5))
         self.n_entry = ttk.Entry(n_frame, textvariable=self.n_var, width=5, font=('Arial', 10))
         self.n_entry.pack(side=tk.LEFT, padx=(0, 15))
+
+        # Generate Matrix Button (packed left)
         ttk.Button(n_frame, text="Generate Matrix", command=self.generate_matrix_input, style='Small.TButton').pack(
-            side=tk.LEFT)
+            side=tk.LEFT, padx=(0, 20))
+
+        # 5. Solve Button (New position, packed left, beside Generate Matrix)
+        self.solve_button = ttk.Button(n_frame, text="SOLVE SYSTEM", command=self.solve_system,
+                                       style='InlineSolve.TButton')
+        self.solve_button.pack(side=tk.LEFT)
 
         # Container frame for the dynamic matrix grid
         ttk.Label(self.input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
@@ -94,15 +110,12 @@ class NumericalSolverGUI:
         # 4. Precision Input (Specification 4)
         precision_frame = ttk.Frame(self.input_frame)
         precision_frame.pack(fill='x', pady=(5, 10))
-        ttk.Label(precision_frame, text="4. Precision (Significant Figures):", style='Title.TLabel').pack(side=tk.LEFT)
+        ttk.Label(precision_frame, text="Precision (Significant Figures):", style='Title.TLabel').pack(side=tk.LEFT)
         self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, style='TEntry',
                                          font=('Arial', 10))
         self.precision_entry.pack(side=tk.RIGHT, padx=(10, 0))
 
-        # 5. Solve Button (Specification 5)
-        self.solve_button = ttk.Button(self.input_frame, text="5. SOLVE SYSTEM", command=self.solve_system,
-                                       style='Solve.TButton')
-        self.solve_button.pack(fill='x', pady=(20, 0))
+        # NOTE: The solve button placement (lines 354-356) has been moved and removed from here.
 
         # --- Output Frame (Right Side) ---
         self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="15",
@@ -165,11 +178,18 @@ class NumericalSolverGUI:
         style.configure("Small.TButton", font=("Arial", 9), padding=[8, 4], background="#BDC3C7", foreground=TEXT_DARK,
                         relief=tk.FLAT)
 
-        # Solve Button (Large, prominent, green)
+        # Solve Button (Original Full-Width Style - Kept for reference, but not used in the new location)
         style.configure("Solve.TButton", font=("Arial", 12, "bold"), foreground='white', background=SECONDARY_ACCENT,
                         padding=[15, 8], relief=tk.FLAT)
-        # Map ensures button color changes on interaction (hover/active state)
         style.map("Solve.TButton",
+                  background=[('active', '#27AE60'), ('!disabled', SECONDARY_ACCENT)],
+                  foreground=[('active', 'white'), ('!disabled', 'white')])
+
+        # New style for inline solve button (reduced padding and font size for horizontal placement)
+        style.configure("InlineSolve.TButton", font=("Arial", 10, "bold"), foreground='white',
+                        background=SECONDARY_ACCENT,
+                        padding=[10, 5], relief=tk.FLAT)
+        style.map("InlineSolve.TButton",
                   background=[('active', '#27AE60'), ('!disabled', SECONDARY_ACCENT)],
                   foreground=[('active', 'white'), ('!disabled', 'white')])
 
@@ -363,6 +383,7 @@ class NumericalSolverGUI:
 
         # 2. Get and Validate System Input (Specification 1)
         # Note: We pass a deep copy of A and b to prevent the solver from modifying the input data
+        # Uses the parse_input method from the NumericalSolver placeholder
         parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
 
         if parsed_matrix is None:
@@ -405,6 +426,7 @@ class NumericalSolverGUI:
 
         try:
             # Dispatch DTO to the solver entry point
+            # Uses the solve method from the NumericalSolver placeholder
             results = self.solver.solve(system_data)
         except Exception as e:
             # Catch unexpected errors during the Factory/Solver process
