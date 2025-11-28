@@ -26,6 +26,17 @@ class Cholesky(AbstractSolver):
         A = np.copy(self.A).astype(float)
         b = np.copy(self.b).astype(float)
 
+        # validation 
+        # Check if square
+        if A.shape[0] != A.shape[1]:
+            raise ValueError("Matrix must be square")
+        # Check if symmetric
+        if not np.allclose(A, A.T, atol=1e-9):
+            raise ValueError("Matrix must be symmetric")
+        # Check positive eigenvalues
+        if np.any(np.linalg.eigvals(A) <= 0):
+            raise ValueError("Matrix must be positive definite (all eigenvalues > 0)")
+
         
         # Cholesky Decomposition (A = L * L^T)
         L = np.zeros((self.n, self.n))
