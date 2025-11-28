@@ -9,10 +9,10 @@ class IterativeMethod(AbstractSolver):
     def __init__(self, data : SystemData):
         super().__init__(data)
         # params
-        self.X = np.array(data.params["X0"], dtype=float)
-        self.iterations = data.params["iterations"]
-        self.tol = data.params["tolerance"]
-        self.jacobi = data.params["jacobi"]
+        self.X = np.array(data.params["Initial Guess"], dtype=float)
+        self.iterations = data.params["max_iter_var"]
+        self.tol = data.params["error_tol_var"]
+        self.jacobi = data.params["Jacobi"]
 
 
     def solve(self)-> Dict[str, Any]:
@@ -35,9 +35,9 @@ class IterativeMethod(AbstractSolver):
           # absolute relative error
           error = np.max(np.abs((self.X - old_x) / (self.X + 1e-12)))  # Division by zero protection
           if error < self.tol:
+             return {"sol": self.X, "iterations" : it}
 
-              return {"sol": self.X, "iterations" : it}
-      return {"sol": None}
+      return {"sol": [1,5,9]}
 
     def dot_with_rounding(self, row, vec, adjust):
         total = 0

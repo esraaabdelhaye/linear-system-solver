@@ -2,9 +2,9 @@
 from methods.AbstractSolver import AbstractSolver
 from methods.GaussElimination import GaussElimination
 from methods.GaussJordan import GaussJordan
-from methods.dolittle import Doolittle
-from methods.crout import Crout
-from methods.iterative_method import iterative_method
+from methods.Doolittle import Doolittle
+from methods.Crout import Crout
+from methods.IterativeMethod import IterativeMethod
 from System.SystemData import SystemData
 
 
@@ -19,13 +19,26 @@ class SolverFactory:
         "doolittle": Doolittle,
         "crout": Crout,
         # "cholesky": CholeskySolver
-        "iterative-method": iterative_method,
+        "Jacobi-Iteration": IterativeMethod,
+        "Gauss-Seidel": IterativeMethod,
     }
 
     @staticmethod
     def get_solver(data: SystemData) -> AbstractSolver:
         """Returns an instance of the specific solver class."""
+        method = SolverFactory.SOLVERS.get(data.method)
+        if method == "LU Decomposition":
+            method = data.params["LU Form"]
+
         solver_class = SolverFactory.SOLVERS.get(data.method)
+
+        if data.method == "Jacobi-Iteration":
+            data.params["Jacobi"] = 1
+        else:
+            data.params["Jacobi"] = 0
+
+
+
         if not solver_class:
             raise ValueError(f"Solver for method '{data.method}' is not implemented.")
         # Instantiate the correct solver with the DTO

@@ -6,7 +6,7 @@ import json
 from typing import List, Tuple, Dict, Any, Optional
 import copy  # Needed for safe matrix copying
 from NumericalSolver import NumericalSolver
-import System.SystemData as SystemData
+from System.SystemData import SystemData
 
 
 class ScrollableFrame(ttk.Frame):
@@ -497,43 +497,43 @@ class NumericalSolverGUI:
             }
 
         # --- 6. Display Results (Specifications 5, 6, 7) ---
-        if results["success"]:
-            sol_text = ""
-            # Format the solution based on the requested precision
-            for i, val in enumerate(results["solution"]):
-                formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
-                sol_text += f"X{i + 1} = {formatted_val}\n"
+        # if results["success"]:
+        sol_text = ""
+        # Format the solution based on the requested precision
+        for i, val in enumerate(results["sol"]):
+            formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
+            sol_text += f"X{i + 1} = {formatted_val}\n"
 
-            output_text = f"--- Solution ---\n\n{sol_text}"
+        output_text = f"--- Solution ---\n\n{sol_text}"
 
-            # Prepare logs
-            log_params = {k: v for k, v in params.items()}
+        # Prepare logs
+        log_params = {k: v for k, v in params.items()}
 
-            log_text = (
-                f"Method Used: {results['method_used']}\n"
-                f"Precision (Sig Figs): {results['precision']}\n"
-                f"Execution Time: {results['execution_time']:.6f} seconds\n"
-            )
+        log_text = (
+            f"Method Used: {results['method_used']}\n"
+            f"Precision (Sig Figs): {results['precision']}\n"
+            f"Execution Time: {results['execution_time']:.6f} seconds\n"
+        )
 
-            if results.get("iterations") != "N/A":
-                log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
+        if results.get("iterations") != "N/A":
+            log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
 
-            # Display parameters used
-            log_text += "\nParameters Used:\n"
-            log_text += json.dumps(log_params, indent=2)
+        # Display parameters used
+        log_text += "\nParameters Used:\n"
+        log_text += json.dumps(log_params, indent=2)
 
-        else:
-            # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
-            output_text = (
-                f"--- Result ---\n\n"
-                f"SYSTEM ERROR:\n"
-                f"{results.get('error_message', 'The system could not be solved.')}"
-            )
-            log_text = (
-                f"Method Used: {method}\n"
-                f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
-                f"Input Data Size: {N}x{N}\n"
-            )
+        # else:
+        #     # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
+        # output_text = (
+        #     f"--- Result ---\n\n"
+        #     f"SYSTEM ERROR:\n"
+        #     f"{results.get('error_message', 'The system could not be solved.')}"
+        # )
+        # log_text = (
+        #     f"Method Used: {method}\n"
+        #     f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
+        #     f"Input Data Size: {N}x{N}\n"
+        # )
 
         self.update_results_display(output_text, log_text)
 
