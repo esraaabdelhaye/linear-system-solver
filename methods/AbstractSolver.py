@@ -12,6 +12,7 @@ class AbstractSolver:
         self.n = data.N
         self.steps = []
 
+
     def solve(self)  -> Dict[str, Any]:
         pass
 

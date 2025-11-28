@@ -6,6 +6,7 @@ from methods.Doolittle import Doolittle
 from methods.Crout import Crout
 from methods.IterativeMethod import IterativeMethod
 from System.SystemData import SystemData
+from methods.Cholesky import Cholesky
 
 
 class SolverFactory:
@@ -18,7 +19,7 @@ class SolverFactory:
         "Gauss-Jordan": GaussJordan,
         "Doolittle": Doolittle,
         "Crout": Crout,
-        # "cholesky": CholeskySolver
+        "Cholesky": Cholesky,
         "Jacobi-Iteration": IterativeMethod,
         "Gauss-Seidel": IterativeMethod,
     }

@@ -42,7 +42,7 @@ class GaussJordan(AbstractSolver):
         #     self.add_step(("Initial System", A.copy(), b.copy()))
 
         # Get scaling factors
-        # scales = self.get_scales() if self.use_scaling else np.ones(self.n)
+        scales = self.get_scales() if self.use_scaling else np.ones(self.n)
 
         # Gauss-Jordan Elimination (to RREF)
         for k in range(self.n):

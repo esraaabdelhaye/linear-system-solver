@@ -24,6 +24,7 @@ class GaussElimination(AbstractSolver):
         self.use_scaling = data.params["use_scaling"]
 
     def solve(self) -> Dict[str, Any]:
+        print("solve: Gauss Elimination")
         """
         Solve the system using Gaussian Elimination with back substitution.
 
@@ -33,19 +34,19 @@ class GaussElimination(AbstractSolver):
         Raises:
             ValueError: If zero pivot is encountered
         """
-        self.validate()
+        # self.validate()
 
         A = self.A.astype(float).copy()
         b = self.b.astype(float).copy()
 
-        if self.single_step:
-            self.add_step(("Initial System", A.copy(), b.copy()))
+        # if self.single_step:
+        #     self.add_step(("Initial System", A.copy(), b.copy()))
 
         # Get scaling factors (used only if use_scaling=True)
         scales = self.get_scales() if self.use_scaling else np.ones(self.n)
 
-        if self.single_step and self.use_scaling:
-            self.add_step(("Scaling factors", scales.copy(), None))
+        # if self.single_step and self.use_scaling:
+        #     self.add_step(("Scaling factors", scales.copy(), None))
 
         # Forward Elimination with Partial Pivoting
         for k in range(self.n - 1):
@@ -104,4 +105,5 @@ class GaussElimination(AbstractSolver):
             if self.single_step:
                 self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
 
+        print(x)
         return {"sol": x}

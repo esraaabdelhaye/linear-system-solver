@@ -37,7 +37,7 @@ class IterativeMethod(AbstractSolver):
           if error < self.tol:
              return {"sol": self.X, "iterations" : it}
 
-      return {"sol": [1,5,9]}
+      return {"sol": None}
 
     def dot_with_rounding(self, row, vec, adjust):
         total = 0

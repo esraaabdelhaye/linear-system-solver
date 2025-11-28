@@ -15,7 +15,6 @@ class Crout(AbstractSolver):
 
     def solve(self) -> Dict[str, Any]:
 
-        self.validate()
         self.decompose()
         if (self.er == -1):
             return
