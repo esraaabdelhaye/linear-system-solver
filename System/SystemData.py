@@ -13,7 +13,7 @@ class SystemData:
         self.b = b  # Constant Vector (1D list of floats)
         self.method = method  # Solving method (e.g., "Gauss Elimination")
         self.precision = precision  # Number of significant figures (Specification 4)
-        self.params = params  # Method-specific parameters (e.g., initial guess, boolean Jacobi, LU form)
+        self.params = params  # Method-specific parameters (e.g., initial guess, boolean Jacobi)
         self.N = len(A)  # Size of the system (Number of Variables/Equations)
         self.single_step = single_step
 
