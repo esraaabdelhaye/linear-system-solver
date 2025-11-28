@@ -1,5 +1,5 @@
 import numpy as np
-
+import System.SystemData as SystemData
 from methods.AbstractSolver import AbstractSolver
 
 
@@ -9,7 +9,7 @@ class GaussElimination(AbstractSolver):
     Supports optional scaling and single-step mode.
     """
 
-    def __init__(self, A, b, precision=6, single_step=False, use_scaling=False):
+    def __init__(self, SystemData):
         """
         Initialize Gauss Elimination solver.
 
@@ -20,8 +20,8 @@ class GaussElimination(AbstractSolver):
             single_step: Enable step-by-step recording
             use_scaling: Enable scaled partial pivoting (Bonus #3)
         """
-        super().__init__(A, b, precision, single_step)
-        self.use_scaling = use_scaling
+        super().__init__(SystemData)
+        self.use_scaling = SystemData.use_scaling
 
     def solve(self):
         """

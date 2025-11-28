@@ -3,6 +3,8 @@ import methods.AbstractSolver as AbstractSolver
 import methods.GaussElimination as GaussEliminationSolver
 import methods.iterative_method as IterativeMethodSolver
 import methods.GaussJordan as GaussJordanSolver
+import methods.dolittle as DolittleSolver
+import methods.crout as CroutSolver
 
 class SolverFactory:
     """
@@ -12,7 +14,9 @@ class SolverFactory:
     SOLVERS = {
         "Gauss Elimination": GaussEliminationSolver,
         "Gauss-Jordan": GaussJordanSolver,
-        # "LU Decomposition": GaussEliminationSolver,
+        "doolittle": DolittleSolver,
+        "crout": CroutSolver,
+        # "cholesky": CholeskySolver
         "iterative-method": IterativeMethodSolver,
     }
 

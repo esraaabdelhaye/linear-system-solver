@@ -1,17 +1,17 @@
 import timeit
 import numpy as np
-import System.SystemData as SystemData
+from System.SystemData import SystemData
 from methods.AbstractSolver import AbstractSolver
 
 
 class iterative_method(AbstractSolver):
-    def __init__(self, SystemData):
-        super().__init__(SystemData)
+    def __init__(self, data : SystemData):
+        super().__init__(data)
         # params
-        self.X = np.array(SystemData.params.X0, dtype=float)
-        self.iterations = SystemData.params.iterations
-        self.tol = SystemData.params.tol
-        self.jacobi = SystemData.params.jacobi
+        self.X = np.array(data.params.X0, dtype=float)
+        self.iterations = data.params.iterations
+        self.tol = data.params.tol
+        self.jacobi = data.params.jacobi
 
 
     def solve(self):
