@@ -3,7 +3,7 @@ from tkinter import messagebox
 import time
 from typing import List, Tuple, Dict, Any, Optional
 import System.SystemData as SystemData
-import methods.methodFactory as SolverFactory
+import methods.SolverFactory as SolverFactory
 
 
 class NumericalSolver:
