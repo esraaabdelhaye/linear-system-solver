@@ -3,7 +3,7 @@ import math
 import time
 from AbstractSolver import AbstractSolver
 
-class CholeskySolver(AbstractSolver):
+class Cholesky(AbstractSolver):
     """
     Implements Cholesky decomposition for solving symmetric, positive-definite systems.
     Supports optional row scaling and logs all steps.
@@ -11,16 +11,9 @@ class CholeskySolver(AbstractSolver):
 
     def __init__(self, A, b, precision=6, single_step=False, use_scaling=False):
         super().__init__(A, b, precision, single_step)
-        self.use_scaling = use_scaling
-        # Compute scales if scaling is used, otherwise use ones
-        self.scales = self.get_scales() if use_scaling else [1]*self.n
+        self.use_scaling = False        # applying scaling in cholesky breaks symmetry --> disabled
 
-    def get_scales(self):
-        """
-        Compute scaling factors: maximum absolute value per row.
-        Avoid division by zero by using 1 if row is all zeros.
-        """
-        return [max(abs(val) for val in row) or 1 for row in self.A]
+        # Compute scales if scaling is used, otherwise use ones
 
     def solve(self):
         """
@@ -31,20 +24,6 @@ class CholeskySolver(AbstractSolver):
         start_time = time.time()  # Start timing
         A = np.copy(self.A).astype(float)
         b = np.copy(self.b).astype(float)
-
-        
-        # Optional Scaling
-        if self.use_scaling:
-            for i in range(self.n):
-                A[i] /= self.scales[i]
-                b[i] /= self.scales[i]
-            # Convert scales to float for clean output
-            scales_float = [float(s) for s in self.scales]
-            self.add_step("Scaling Applied", {
-                "scaled_A": A.tolist(),
-                "scaled_b": b.tolist(),
-                "scales": scales_float
-            })
 
         
         # Cholesky Decomposition (A = L * L^T)
@@ -96,25 +75,3 @@ class CholeskySolver(AbstractSolver):
             "steps": self.steps
         }
 
-
-
-
-
-
-# A = [
-#     [2, 1, 1, 1, 1],
-#     [1, 2, 1, 1, 1],
-#     [1, 1, 2, 1, 1],
-#     [1, 1, 1, 2, 1],
-#     [1, 1, 1, 1, 2]
-# ]
-# b = [1, 2, 3, 4, 5]
-
-# solver = CholeskySolver(A, b, precision=6, single_step=True, use_scaling=True)
-# result = solver.solve()
-# print("Solution:", result["solution"])
-
-# print("\n=== Steps ===")
-# for i, step in enumerate(result["steps"], start=1):
-#     print(f"\n--- Step {i}: {step['label']} ---")
-#     print(step["value"])
