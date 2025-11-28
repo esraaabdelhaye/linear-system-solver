@@ -12,9 +12,9 @@ class Cholesky(AbstractSolver):
     """
 
     def __init__(self,data: SystemData):
+        # Call parent class initializer
         super().__init__(data)
 
-        # Compute scales if scaling is used, otherwise use ones
 
     def solve(self)-> Dict[str, Any]:
 
@@ -23,10 +23,11 @@ class Cholesky(AbstractSolver):
         Returns a dictionary containing solution, L matrix, execution time, and steps.
         """
 
+        # Make copies to avoid modifying original data
         A = np.copy(self.A).astype(float)
         b = np.copy(self.b).astype(float)
 
-
+        # VALIDATION CHECKS::
         # Check if square
         if A.shape[0] != A.shape[1]:
             raise ValueError("Matrix must be square")
@@ -38,11 +39,12 @@ class Cholesky(AbstractSolver):
             raise ValueError("Matrix must be positive definite (all eigenvalues > 0)")
 
 
-        # Cholesky Decomposition (A = L * L^T)
-        L = np.zeros((self.n, self.n))
+        # CHOLESKY DECOMPOSITION (A = L * L^T)
+        L = np.zeros((self.n, self.n))      # Initialize L as an n×n zero matrix
         for i in range(self.n):
             for j in range(i + 1):
-                # Compute sum for previous L elements
+                
+                # Compute the summation: Σ L[i][k] * L[j][k] for k < j
                 sum_val = sum(L[i][k] * L[j][k] for k in range(j))
                 sum_val = self.round_sig_fig(sum_val)
 
@@ -51,26 +53,31 @@ class Cholesky(AbstractSolver):
                     L[i][j] = val
                 else:       # Off-diagonal elements
                     if L[j][j] == 0:
+                        # If diagonal of L becomes zero → matrix not SPD
                         raise ValueError("Matrix is not positive definite")
                     val = self.round_sig_fig((A[i][j] - sum_val) / L[j][j])
                     L[i][j] = val
         # self.add_step("L matrix", L.tolist())
 
         
-        # Forward Substitution (Ly = b)
+        # FORWARD SUBSTITUTION (Ly = b)
         y = np.zeros(self.n)
         for i in range(self.n):
+            # Compute Σ L[i][j] * y[j]
             sum_val = sum(L[i][j] * y[j] for j in range(i))
             sum_val = self.round_sig_fig(sum_val)
+            # Compute y[i]
             y[i] = self.round_sig_fig((b[i] - sum_val) / L[i][i])
         # self.add_step("Forward substitution (Y)", y.tolist())
 
         
-        # Backward Substitution (L^T x = y)
+        # BACKWARD SUBSTITUTION (L^T x = y)
         x = np.zeros(self.n)
         for i in reversed(range(self.n)):
+            # Compute Σ L[j][i] * x[j]
             sum_val = sum(L[j][i] * x[j] for j in range(i + 1, self.n))
             sum_val = self.round_sig_fig(sum_val)
+            # Compute x[i]
             x[i] = self.round_sig_fig((y[i] - sum_val) / L[i][i])
         # self.add_step("Backward substitution (X)", x.tolist())
 
@@ -81,6 +88,5 @@ class Cholesky(AbstractSolver):
         return {
             "success": True,
             "sol": x
-            # "L_matrix": L
         }
 
