@@ -1,4 +1,4 @@
-from methods.iterative_method import iterative_method
+from methods.IterativeMethod import iterative_method
 
 def main():
     # Example system A * x = B

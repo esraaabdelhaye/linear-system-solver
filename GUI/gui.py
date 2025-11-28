@@ -5,8 +5,55 @@ import json
 # Import necessary type hints
 from typing import List, Tuple, Dict, Any, Optional
 import copy  # Needed for safe matrix copying
-from Solver import NumericalSolver
-from System.SystemData import SystemData
+from NumericalSolver import NumericalSolver
+import System.SystemData as SystemData
+
+
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+
+        # --- Canvas ---
+        self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0)
+
+        # --- Scrollbars ---
+        self.v_scroll = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.h_scroll = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
+
+        # --- Frame inside canvas ---
+        self.scrollable_frame = ttk.Frame(self.canvas)
+
+        # Place the inner frame inside the canvas
+        self.window_id = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        # --- Configure scroll region dynamically ---
+        def update_scrollregion(event):
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+        self.scrollable_frame.bind("<Configure>", update_scrollregion)
+
+        # --- Connect canvas to scrollbars ---
+        self.canvas.configure(yscrollcommand=self.v_scroll.set, xscrollcommand=self.h_scroll.set)
+
+        # --- Layout ---
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.v_scroll.grid(row=0, column=1, sticky="ns")
+        self.h_scroll.grid(row=1, column=0, sticky="ew")
+
+        # Make the frame expandable
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        # --- Optional: mouse wheel support for vertical scrolling ---
+        self.scrollable_frame.bind(
+            "<Enter>",
+            lambda e: self.canvas.bind_all("<MouseWheel>",
+                                           lambda ev: self.canvas.yview_scroll(int(-ev.delta / 120), "units"))
+        )
+        self.scrollable_frame.bind(
+            "<Leave>",
+            lambda e: self.canvas.unbind_all("<MouseWheel>")
+        )
 
 
 class NumericalSolverGUI:
@@ -33,8 +80,9 @@ class NumericalSolverGUI:
         # Dynamic parameter variables, initialized with defaults
         self.lu_form_var = tk.StringVar(master, value="Doolittle Form")
         self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")  # Example for 3x3
-        self.stop_condition_type_var = tk.StringVar(master, value="Number of Iterations")
-        self.stop_value_var = tk.StringVar(master, value="50")
+        self.max_iter_var = tk.StringVar(master, value=100)
+        self.error_tol_var = tk.StringVar(master, value=0.01)
+
 
         # Storage for the dynamically created matrix input widgets
         self.matrix_entry_widgets: List[List[tk.Entry]] = []
@@ -50,9 +98,16 @@ class NumericalSolverGUI:
         self.main_frame.columnconfigure(1, weight=1)  # Right output column
 
         # --- Input Frame (Left Side) ---
-        self.input_frame = ttk.LabelFrame(self.main_frame, text="1. System Input & Method Selection", padding="15",
+        self.scroll_frame = ScrollableFrame(self.main_frame)
+        self.scroll_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        self.scroll_frame.scrollable_frame.columnconfigure(0, weight=1)
+
+        self.input_frame = ttk.LabelFrame(self.scroll_frame.scrollable_frame,
+                                          text="1. System Input & Method Selection",
+                                          padding="15",
                                           style='Input.TLabelframe')
-        self.input_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
+        self.input_frame.pack(fill='both', expand=True)
+
         self.input_frame.columnconfigure(0, weight=1)
 
         # --- N Input, Matrix Generation Block, and Solve Button (Combined) ---
@@ -215,7 +270,7 @@ class NumericalSolverGUI:
         """
         try:
             N = int(self.n_var.get())
-            if N <= 0 or N > 10:
+            if N <= 0:
                 messagebox.showwarning("Input Warning", "N must be between 1 and 10 for a usable layout.")
                 self.n_var.set("3")  # Reset to default if out of range
                 N = 3
@@ -296,21 +351,24 @@ class NumericalSolverGUI:
             ttk.Entry(self.params_frame, textvariable=self.initial_guess_var, style='TEntry', font=('Arial', 10)).pack(
                 fill='x', pady=(0, 10))
 
-            # Stopping Condition Type (Dropdown)
-            ttk.Label(self.params_frame, text="Stopping Condition Type:", style='TLabel').pack(fill='x', pady=(5, 5))
-            stop_type_options = ["Number of Iterations", "Absolute Relative Error"]
-            ttk.Combobox(self.params_frame,
-                         textvariable=self.stop_condition_type_var,
-                         values=stop_type_options,
-                         state="readonly",
-                         style='TCombobox',
-                         font=('Arial', 10)).pack(fill='x', pady=(0, 10))
 
-            # Stopping Value (Entry)
-            ttk.Label(self.params_frame, text="Stopping Value (e.g., Max Iterations or Error %):", style='TLabel').pack(
-                fill='x', pady=(5, 5))
-            ttk.Entry(self.params_frame, textvariable=self.stop_value_var, style='TEntry', font=('Arial', 10)).pack(
-                fill='x')
+            # Stopping Conditions Title
+            (ttk.Label(self.params_frame, text="Stopping Conditions:", style='Title.TLabel')
+             .pack(fill='x', pady=(10, 5)))
+
+            # --- Max Iterations ---
+            (ttk.Label(self.params_frame, text="Max Iterations:", style='TLabel')
+             .pack(fill='x', pady=(5, 2)))
+
+            (ttk.Entry(self.params_frame, textvariable=self.max_iter_var, style='TEntry', font=('Arial', 10))
+             .pack(fill='x'))
+
+            # --- Error Tolerance (%) ---
+            (ttk.Label(self.params_frame,text="Error Tolerance (%):",style='TLabel')
+             .pack(fill='x', pady=(5, 2)))
+
+            (ttk.Entry(self.params_frame, textvariable=self.error_tol_var, style='TEntry', font=('Arial', 10))
+             .pack(fill='x'))
 
     def parse_guess_input(self, guess_str: str) -> Optional[List[float]]:
         """Parses the comma-separated initial guess string into a list of floats."""
@@ -333,12 +391,12 @@ class NumericalSolverGUI:
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
             # Store raw guess string first, validate size later in solve_system
             params["Initial Guess (Raw)"] = self.initial_guess_var.get()
-            params["Stopping Condition Type"] = self.stop_condition_type_var.get()
+
 
             # Validate Stopping Value format
             try:
-                stop_value = float(self.stop_value_var.get())
-                params["Stopping Value"] = stop_value
+                params["max_iter_var"] = int(self.max_iter_var.get())
+                params["error_tol_var"] = float(self.error_tol_var.get())
             except ValueError:
                 return {"error": "Stopping Value must be a number."}
 
@@ -418,6 +476,8 @@ class NumericalSolverGUI:
                 return
 
             params["Initial Guess"] = guess_list  # Store validated list in params
+
+        # if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
 
         # --- 5. Create DTO and Call Solver ---
         # Pass deep copies of A and b to ensure the solver works on its own version

@@ -2,10 +2,8 @@ import tkinter as tk
 from tkinter import messagebox
 import time
 from typing import List, Tuple, Dict, Any, Optional
-
 from System.SystemData import SystemData
 from methods.SolverFactory import SolverFactory
-
 
 
 class NumericalSolver:

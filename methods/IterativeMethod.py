@@ -5,7 +5,7 @@ from methods.AbstractSolver import AbstractSolver
 from typing import  Dict, Any
 
 
-class iterative_method(AbstractSolver):
+class IterativeMethod(AbstractSolver):
     def __init__(self, data : SystemData):
         super().__init__(data)
         # params
