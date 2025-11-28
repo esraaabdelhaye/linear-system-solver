@@ -316,36 +316,37 @@ class NumericalSolverGUI:
         self.setup_styles()
 
         # --- Setup Main Frames (Two-column layout) ---
-        self.main_frame = ttk.Frame(master, padding="15 15 15 15", style='Main.TFrame')
+        # Increased padding for a cleaner, less cramped look
+        self.main_frame = ttk.Frame(master, padding="20 20 20 20", style='Main.TFrame')
         self.main_frame.pack(fill='both', expand=True)
         self.main_frame.columnconfigure(0, weight=1)  # Left input column
         self.main_frame.columnconfigure(1, weight=1)  # Right output column
 
         # --- Input Frame (Left Side) ---
-        self.input_frame = ttk.LabelFrame(self.main_frame, text="1. System Input & Method Selection", padding="10",
+        self.input_frame = ttk.LabelFrame(self.main_frame, text="1. System Input & Method Selection", padding="15",
                                           style='Input.TLabelframe')
-        self.input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.input_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
         self.input_frame.columnconfigure(0, weight=1)
 
         # --- N Input and Matrix Generation Block ---
         n_frame = ttk.Frame(self.input_frame)
-        n_frame.pack(fill='x', pady=(0, 5))
+        n_frame.pack(fill='x', pady=(0, 10))
         ttk.Label(n_frame, text="N (Variables/Equations):", style='Title.TLabel').pack(side=tk.LEFT, padx=(0, 5))
-        self.n_entry = ttk.Entry(n_frame, textvariable=self.n_var, width=5)
-        self.n_entry.pack(side=tk.LEFT, padx=(0, 10))
+        self.n_entry = ttk.Entry(n_frame, textvariable=self.n_var, width=5, font=('Arial', 10))
+        self.n_entry.pack(side=tk.LEFT, padx=(0, 15))
         ttk.Button(n_frame, text="Generate Matrix", command=self.generate_matrix_input, style='Small.TButton').pack(
             side=tk.LEFT)
 
         # Container frame for the dynamic matrix grid
-        ttk.Label(self.input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(5, 5))
+        ttk.Label(self.input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
         self.matrix_input_container = ttk.Frame(self.input_frame, style='Matrix.TFrame')
-        self.matrix_input_container.pack(fill='x', expand=False, pady=(0, 10))
+        self.matrix_input_container.pack(fill='x', expand=False, pady=(0, 15))
 
         # Initial draw of the 3x3 matrix input grid
         self.generate_matrix_input()
 
         # 2. Method Selection (Specification 2)
-        ttk.Label(self.input_frame, text="2. Choose Solving Method:", style='Title.TLabel').pack(fill='x', pady=(5, 5))
+        ttk.Label(self.input_frame, text="2. Choose Solving Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
         self.method_options = [
             "Gauss Elimination",
             "Gauss-Jordan",
@@ -357,85 +358,109 @@ class NumericalSolverGUI:
                                             textvariable=self.method_var,
                                             values=self.method_options,
                                             state="readonly",
-                                            style='TCombobox')
-        self.method_dropdown.pack(fill='x', pady=(0, 10))
+                                            style='TCombobox',
+                                            font=('Arial', 10))
+        self.method_dropdown.pack(fill='x', pady=(0, 15))
         # Trigger dynamic parameter update whenever the method changes
         self.method_var.trace_add("write", self.update_parameters_frame)
 
         # 3. Dynamic Parameters Frame (Specification 3)
-        self.params_frame = ttk.LabelFrame(self.input_frame, text="3. Method Parameters", padding="10",
+        self.params_frame = ttk.LabelFrame(self.input_frame, text="3. Method Parameters", padding="15",
                                            style='Input.TLabelframe')
-        self.params_frame.pack(fill='x', pady=(5, 10))
+        self.params_frame.pack(fill='x', pady=(10, 15))
         self.update_parameters_frame()  # Initial call to display default parameters
 
         # 4. Precision Input (Specification 4)
         precision_frame = ttk.Frame(self.input_frame)
-        precision_frame.pack(fill='x', pady=(5, 5))
+        precision_frame.pack(fill='x', pady=(5, 10))
         ttk.Label(precision_frame, text="4. Precision (Significant Figures):", style='Title.TLabel').pack(side=tk.LEFT)
-        self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, style='TEntry')
+        self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, style='TEntry',
+                                         font=('Arial', 10))
         self.precision_entry.pack(side=tk.RIGHT, padx=(10, 0))
 
         # 5. Solve Button (Specification 5)
         self.solve_button = ttk.Button(self.input_frame, text="5. SOLVE SYSTEM", command=self.solve_system,
                                        style='Solve.TButton')
-        self.solve_button.pack(fill='x', pady=(15, 0))
+        self.solve_button.pack(fill='x', pady=(20, 0))
 
         # --- Output Frame (Right Side) ---
-        self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="10",
+        self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="15",
                                            style='Output.TLabelframe')
-        self.output_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.output_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
         self.output_frame.columnconfigure(0, weight=1)
 
         # Output area for the solution vector (X1, X2, ...)
         ttk.Label(self.output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
         self.results_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, height=20, width=50,
-                                                      font=("Consolas", 10), state=tk.DISABLED, bg="#f0f0f0",
-                                                      fg="#000080")
+                                                      font=("Consolas", 11), state=tk.DISABLED, bg="#F0F8FF",
+                                                      fg="#004D99",
+                                                      relief=tk.FLAT)  # Flat relief for modern look
         self.results_text.pack(fill='both', expand=True)
 
         # Output area for execution time, iterations, and parameters (Specification 7)
-        ttk.Label(self.output_frame, text="Details & Logs:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
+        ttk.Label(self.output_frame, text="Details & Logs:", style='Title.TLabel').pack(fill='x', pady=(15, 5))
         self.log_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, height=5, width=50,
-                                                  font=("Consolas", 9), state=tk.DISABLED, bg="#f0f0f0", fg="#333333")
+                                                  font=("Consolas", 10), state=tk.DISABLED, bg="#F5F5F5", fg="#555555",
+                                                  relief=tk.FLAT)  # Flat relief for modern look
         self.log_text.pack(fill='both', expand=True)
 
     def setup_styles(self):
-        """Sets up custom styles for a modern, colorful look using the 'clam' theme."""
+        """Sets up custom styles for a flat, modern aesthetic using the 'clam' theme as a base."""
         style = ttk.Style()
+        # Use a more neutral modern base theme
         style.theme_use('clam')
 
-        # Color Palette definition
-        PRIMARY_BLUE = "#007BFF"  # Accent color for input titles
-        SECONDARY_GREEN = "#28A745"  # Accent color for the solve button and output frame
-        BACKGROUND_LIGHT = "#f8f9fa"
-        BACKGROUND_DARK = "#e9ecef"
-        TEXT_DARK = "#343A40"
+        # --- Color Palette (Flat Design) ---
+        PRIMARY_ACCENT = "#3498DB"  # Bright Blue for accents/primary actions
+        SECONDARY_ACCENT = "#2ECC71"  # Green for the solve button/success
+        BACKGROUND_LIGHT = "#ECF0F1"  # Very light grey background
+        BACKGROUND_FRAME = "#FFFFFF"  # Pure white for contained elements
+        TEXT_DARK = "#2C3E50"  # Dark slate grey for primary text
+        TEXT_MEDIUM = "#7F8C8D"  # Medium grey for secondary text
 
-        # General Frame/Background
+        # --- General Styles ---
         style.configure("Main.TFrame", background=BACKGROUND_LIGHT)
 
-        # Labels and Titles
-        style.configure("TLabel", font=("Arial", 10), background=BACKGROUND_LIGHT, foreground=TEXT_DARK)
-        style.configure("Title.TLabel", font=("Arial", 11, "bold"), foreground=PRIMARY_BLUE)
+        # --- Labels and Titles (Clean, consistent font) ---
+        style.configure("TLabel", font=("Arial", 10), background=BACKGROUND_FRAME, foreground=TEXT_DARK)
+        style.configure("Title.TLabel", font=("Arial", 11, "bold"), foreground=PRIMARY_ACCENT,
+                        background=BACKGROUND_FRAME)
 
-        # Label Frames (Containers)
-        style.configure("Input.TLabelframe", font=("Arial", 12, "bold"), foreground=PRIMARY_BLUE,
-                        background=BACKGROUND_DARK)
-        style.configure("Input.TLabelframe.Label", background=BACKGROUND_DARK, foreground=PRIMARY_BLUE)
-        style.configure("Output.TLabelframe", font=("Arial", 12, "bold"), foreground=SECONDARY_GREEN,
-                        background=BACKGROUND_DARK)
-        style.configure("Output.TLabelframe.Label", background=BACKGROUND_DARK, foreground=SECONDARY_GREEN)
+        # --- Label Frames (Containers) ---
+        # Set background to white for content clarity, border to primary blue
+        style.configure("Input.TLabelframe", font=("Arial", 12, "bold"), foreground=TEXT_DARK,
+                        background=BACKGROUND_FRAME, bordercolor=PRIMARY_ACCENT)
+        style.configure("Input.TLabelframe.Label", background=BACKGROUND_FRAME, foreground=PRIMARY_ACCENT,
+                        bordercolor=PRIMARY_ACCENT)
 
-        # Buttons
-        style.configure("TButton", font=("Arial", 10), padding=6, background=BACKGROUND_LIGHT)
-        style.configure("Small.TButton", font=("Arial", 9), padding=3, background='#D0D0D0')
-        style.configure("Solve.TButton", font=("Arial", 12, "bold"), foreground='white', background=SECONDARY_GREEN)
-        # Map ensures button color changes on interaction (active/hover)
-        style.map("Solve.TButton", background=[('active', '#1E7E34'), ('!disabled', SECONDARY_GREEN)])
+        style.configure("Output.TLabelframe", font=("Arial", 12, "bold"), foreground=TEXT_DARK,
+                        background=BACKGROUND_FRAME, bordercolor=SECONDARY_ACCENT)
+        style.configure("Output.TLabelframe.Label", background=BACKGROUND_FRAME, foreground=SECONDARY_ACCENT,
+                        bordercolor=SECONDARY_ACCENT)
 
-        # Entries
-        style.configure("TEntry", padding=4, background='white')
-        style.configure("Matrix.TFrame", background=BACKGROUND_LIGHT)
+        # --- Buttons (Flat and Primary Colors) ---
+        style.configure("TButton", font=("Arial", 10, "bold"), padding=[10, 5], background=PRIMARY_ACCENT,
+                        foreground='white', relief=tk.FLAT)
+        style.configure("Small.TButton", font=("Arial", 9), padding=[8, 4], background="#BDC3C7", foreground=TEXT_DARK,
+                        relief=tk.FLAT)
+
+        # Solve Button (Large, prominent, green)
+        style.configure("Solve.TButton", font=("Arial", 12, "bold"), foreground='white', background=SECONDARY_ACCENT,
+                        padding=[15, 8], relief=tk.FLAT)
+        # Map ensures button color changes on interaction (hover/active state)
+        style.map("Solve.TButton",
+                  background=[('active', '#27AE60'), ('!disabled', SECONDARY_ACCENT)],
+                  foreground=[('active', 'white'), ('!disabled', 'white')])
+
+        # --- Entries and Comboboxes (Flat borders) ---
+        style.configure("TEntry", padding=[5, 5], background='white', bordercolor=TEXT_MEDIUM, fieldbackground='white',
+                        foreground=TEXT_DARK)
+        style.configure("TCombobox", padding=[5, 5], background='white', bordercolor=TEXT_MEDIUM,
+                        fieldbackground='white', foreground=TEXT_DARK)
+
+        # Apply a simple border/relief for input clarity
+        style.configure("Matrix.TFrame", background=BACKGROUND_FRAME)
+        style.configure("TFrame", background=BACKGROUND_FRAME)
 
     def clear_params_frame(self):
         """Removes all widgets from the parameters frame to prepare for dynamic content."""
@@ -467,24 +492,24 @@ class NumericalSolverGUI:
         # Create Header Row (X1, X2, ..., | B)
         for j in range(N):
             ttk.Label(self.matrix_input_container, text=f"X{j + 1}", font=("Arial", 10, "bold"),
-                      foreground="#007BFF").grid(row=0, column=j, padx=2, pady=2)
-        ttk.Label(self.matrix_input_container, text=" | B", font=("Arial", 10, "bold"), foreground="#DC3545").grid(
-            row=0, column=N, padx=5, pady=2)
+                      foreground="#2980B9").grid(row=0, column=j, padx=4, pady=4)
+        ttk.Label(self.matrix_input_container, text=" | B", font=("Arial", 10, "bold"), foreground="#E74C3C").grid(
+            row=0, column=N, padx=8, pady=4)
 
         # Create N rows and N+1 columns of Entry fields
         for i in range(N):
             row_entries = []
             for j in range(N + 1):
-                entry = ttk.Entry(self.matrix_input_container, width=5, style='TEntry')
+                entry = ttk.Entry(self.matrix_input_container, width=5, style='TEntry', font=('Consolas', 10))
 
                 if j == N:
                     # Constant vector (B) column styling
                     entry.grid(row=i + 1, column=j, padx=(10, 2), pady=2, sticky='ew')
-                    entry.config(foreground="#DC3545")  # Red for constant vector
+                    entry.config(foreground="#E74C3C")  # Red for constant vector
                 else:
                     # Coefficient matrix (A) column styling
                     entry.grid(row=i + 1, column=j, padx=2, pady=2, sticky='ew')
-                    entry.config(foreground="#007BFF")  # Blue for coefficients
+                    entry.config(foreground="#2980B9")  # Blue for coefficients
 
                 row_entries.append(entry)
             self.matrix_entry_widgets.append(row_entries)
@@ -512,36 +537,39 @@ class NumericalSolverGUI:
 
         if method == "LU Decomposition":
             # Requires LU form selection
-            ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(0, 5))
+            ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(5, 5))
             lu_options = ["Doolittle Form", "Crout Form", "Cholesky Form"]
             ttk.Combobox(self.params_frame,
                          textvariable=self.lu_form_var,
                          values=lu_options,
                          state="readonly",
-                         style='TCombobox').pack(fill='x', pady=(0, 10))
+                         style='TCombobox',
+                         font=('Arial', 10)).pack(fill='x', pady=(0, 10))
 
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
             # Requires initial guess and stopping condition
 
             # Initial Guess Input
             ttk.Label(self.params_frame, text="Initial Guess (comma-separated):", style='TLabel').pack(fill='x',
-                                                                                                       pady=(0, 5))
-            ttk.Entry(self.params_frame, textvariable=self.initial_guess_var, style='TEntry').pack(fill='x',
-                                                                                                   pady=(0, 10))
+                                                                                                       pady=(5, 5))
+            ttk.Entry(self.params_frame, textvariable=self.initial_guess_var, style='TEntry', font=('Arial', 10)).pack(
+                fill='x', pady=(0, 10))
 
             # Stopping Condition Type (Dropdown)
-            ttk.Label(self.params_frame, text="Stopping Condition Type:", style='TLabel').pack(fill='x', pady=(0, 5))
+            ttk.Label(self.params_frame, text="Stopping Condition Type:", style='TLabel').pack(fill='x', pady=(5, 5))
             stop_type_options = ["Number of Iterations", "Absolute Relative Error"]
             ttk.Combobox(self.params_frame,
                          textvariable=self.stop_condition_type_var,
                          values=stop_type_options,
                          state="readonly",
-                         style='TCombobox').pack(fill='x', pady=(0, 10))
+                         style='TCombobox',
+                         font=('Arial', 10)).pack(fill='x', pady=(0, 10))
 
             # Stopping Value (Entry)
             ttk.Label(self.params_frame, text="Stopping Value (e.g., Max Iterations or Error %):", style='TLabel').pack(
-                fill='x', pady=(0, 5))
-            ttk.Entry(self.params_frame, textvariable=self.stop_value_var, style='TEntry').pack(fill='x')
+                fill='x', pady=(5, 5))
+            ttk.Entry(self.params_frame, textvariable=self.stop_value_var, style='TEntry', font=('Arial', 10)).pack(
+                fill='x')
 
     def parse_guess_input(self, guess_str: str) -> Optional[List[float]]:
         """Parses the comma-separated initial guess string into a list of floats."""
