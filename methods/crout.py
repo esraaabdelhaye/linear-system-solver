@@ -3,8 +3,8 @@ from AbstractSolver import AbstractSolver
 
 
 class Crout(AbstractSolver):
-    def __init__(self, A, b, precision=6, single_step=False):
-        super().__init__(A, b, precision, single_step)
+    def __init__(self, data):
+        super().__init__(data.A, data.b, data.precision)
         self.x = [0] * self.n
         self.tol = 1e-9
         self.er = 0
