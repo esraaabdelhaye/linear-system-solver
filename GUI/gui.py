@@ -78,7 +78,7 @@ class NumericalSolverGUI:
         self.n_var = tk.StringVar(master, value="3")  # Default N=3 (Number of variables)
 
         # Dynamic parameter variables, initialized with defaults
-        self.lu_form_var = tk.StringVar(master, value="Doolittle Form")
+        self.lu_form_var = tk.StringVar(master, value="Doolittle")
         self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")  # Example for 3x3
         self.max_iter_var = tk.StringVar(master, value=100)
         self.error_tol_var = tk.StringVar(master, value=0.01)
@@ -334,7 +334,7 @@ class NumericalSolverGUI:
         if method == "LU Decomposition":
             # Requires LU form selection
             ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(5, 5))
-            lu_options = ["Doolittle Form", "Crout Form", "Cholesky Form"]
+            lu_options = ["Doolittle", "Crout", "Cholesky"]
             ttk.Combobox(self.params_frame,
                          textvariable=self.lu_form_var,
                          values=lu_options,

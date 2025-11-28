@@ -14,7 +14,7 @@ class Doolittle(AbstractSolver):
         self.a = self.A.copy()
 
     def solve(self) -> Dict[str, Any]:
-
+        print("Solving Doolittle...")
         self.validate()
         self.decompose()
         if (self.er == -1):

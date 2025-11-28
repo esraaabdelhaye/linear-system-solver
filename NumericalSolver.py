@@ -50,6 +50,7 @@ class NumericalSolver:
         return A, b
 
     def solve(self, data: SystemData) -> Dict[str, Any]:
+        print("solve from Numberical Solver")
         """
         Dispatches the solving request to the correct solver implementation.
         """
@@ -59,7 +60,9 @@ class NumericalSolver:
             # Factory provides the specific solver instance
             solver = SolverFactory.get_solver(data)
             results = solver.solve()
-
+            if results is not None:
+                print("NO RESULTS FOUND")
+            print("results: ", results)
             # Add metadata back to results for GUI display
             results["method_used"] = data.method
             results["precision"] = data.precision

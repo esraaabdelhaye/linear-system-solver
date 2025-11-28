@@ -16,8 +16,8 @@ class SolverFactory:
     SOLVERS = {
         "Gauss Elimination": GaussElimination,
         "Gauss-Jordan": GaussJordan,
-        "doolittle": Doolittle,
-        "crout": Crout,
+        "Doolittle": Doolittle,
+        "Crout": Crout,
         # "cholesky": CholeskySolver
         "Jacobi-Iteration": IterativeMethod,
         "Gauss-Seidel": IterativeMethod,
@@ -25,10 +25,11 @@ class SolverFactory:
 
     @staticmethod
     def get_solver(data: SystemData) -> AbstractSolver:
-        """Returns an instance of the specific solver class."""
-        method = SolverFactory.SOLVERS.get(data.method)
-        if method == "LU Decomposition":
-            method = data.params["LU Form"]
+        print(data.method)
+
+        if data.method == "LU Decomposition":
+            data.method = data.params["LU Form"]
+
 
         solver_class = SolverFactory.SOLVERS.get(data.method)
 
