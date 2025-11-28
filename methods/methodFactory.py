@@ -11,8 +11,8 @@ class SolverFactory:
     """
     SOLVERS = {
         "Gauss Elimination": GaussEliminationSolver,
-        "Gauss-Jordan": GaussEliminationSolver,  # Placeholder, should be GaussJordanSolver
-        "LU Decomposition": GaussEliminationSolver,  # Placeholder, should be LUSolver
+        "Gauss-Jordan": GaussJordanSolver,
+        # "LU Decomposition": GaussEliminationSolver,
         "iterative-method": IterativeMethodSolver,
     }
 
