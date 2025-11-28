@@ -78,6 +78,7 @@ class NumericalSolverGUI:
         self.n_var = tk.StringVar(master, value="3")  # Default N=3 (Number of variables)
 
         # Dynamic parameter variables, initialized with defaults
+        self.use_scaling_var = tk.BooleanVar(value=False)
         self.lu_form_var = tk.StringVar(master, value="Doolittle Form")
         self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")  # Example for 3x3
         self.max_iter_var = tk.StringVar(master, value=100)
@@ -330,6 +331,9 @@ class NumericalSolverGUI:
         """
         self.clear_params_frame()
         method = self.method_var.get()
+
+        if method in ["Gauss Elimination", "Gauss-Jordan"]:
+
 
         if method == "LU Decomposition":
             # Requires LU form selection
