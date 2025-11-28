@@ -1,5 +1,5 @@
-import timeit
-from AbstractSolver import AbstractSolver
+from methods.AbstractSolver import AbstractSolver
+
 from System.SystemData import SystemData
 from typing import  Dict, Any
 

@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
-import time
+
 import json
 # Import necessary type hints
 from typing import List, Tuple, Dict, Any, Optional
