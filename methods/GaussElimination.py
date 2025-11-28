@@ -24,6 +24,7 @@ class GaussElimination(AbstractSolver):
         self.use_scaling = data.params["use_scaling"]
 
     def solve(self) -> Dict[str, Any]:
+        print("solve: Gauss Elimination")
         """
         Solve the system using Gaussian Elimination with back substitution.
 
@@ -33,19 +34,19 @@ class GaussElimination(AbstractSolver):
         Raises:
             ValueError: If zero pivot is encountered
         """
-        self.validate()
+        # self.validate()
 
         A = self.A.astype(float).copy()
         b = self.b.astype(float).copy()
 
-        if self.single_step:
-            self.add_step(("Initial System", A.copy(), b.copy()))
+        # if self.single_step:
+        #     self.add_step(("Initial System", A.copy(), b.copy()))
 
         # Get scaling factors (used only if use_scaling=True)
         scales = self.get_scales() if self.use_scaling else np.ones(self.n)
 
-        if self.single_step and self.use_scaling:
-            self.add_step(("Scaling factors", scales.copy(), None))
+        # if self.single_step and self.use_scaling:
+        #     self.add_step(("Scaling factors", scales.copy(), None))
 
         # Forward Elimination with Partial Pivoting
         for k in range(self.n - 1):
@@ -82,16 +83,16 @@ class GaussElimination(AbstractSolver):
                     A[i, k:] -= factor * A[k, k:]  # Vectorized operation
                     b[i] -= factor * b[k]
 
-                    if self.single_step:
-                        self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
-                                       A.copy(), b.copy()))
+                    # if self.single_step:
+                    #     self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
+                    #                    A.copy(), b.copy()))
 
         # Check final pivot
         if abs(A[self.n - 1][self.n - 1]) < 1e-10:
             raise ValueError("Zero pivot encountered in final row.")
 
-        if self.single_step:
-            self.add_step(("Upper Triangular Form", A.copy(), b.copy()))
+        # if self.single_step:
+        #     self.add_step(("Upper Triangular Form", A.copy(), b.copy()))
 
         # Back Substitution
         x = np.zeros(self.n)
@@ -101,7 +102,8 @@ class GaussElimination(AbstractSolver):
             x[i] = (b[i] - sum_ax) / A[i][i]
             x[i] = self.round_sig_fig(x[i])
 
-            if self.single_step:
-                self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
+            # if self.single_step:
+            #     self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
 
-        return {"sol": x}
+        print(x)
+        return {"success": True,"sol": x}

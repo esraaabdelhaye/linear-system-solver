@@ -33,7 +33,7 @@ class GaussJordan(AbstractSolver):
         Raises:
             ValueError: If zero pivot is encountered
         """
-        self.validate()
+
 
         A = self.A.astype(float).copy()
         b = self.b.astype(float).copy()
@@ -42,7 +42,7 @@ class GaussJordan(AbstractSolver):
         #     self.add_step(("Initial System", A.copy(), b.copy()))
 
         # Get scaling factors
-        # scales = self.get_scales() if self.use_scaling else np.ones(self.n)
+        scales = self.get_scales() if self.use_scaling else np.ones(self.n)
 
         # Gauss-Jordan Elimination (to RREF)
         for k in range(self.n):
@@ -104,4 +104,4 @@ class GaussJordan(AbstractSolver):
         for i in range(self.n):
             x[i] = self.round_sig_fig(x[i])
 
-        return {"sol": x}
+        return { "success": True,"sol": x}

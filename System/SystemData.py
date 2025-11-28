@@ -15,4 +15,6 @@ class SystemData:
         self.precision = precision  # Number of significant figures (Specification 4)
         self.params = params  # Method-specific parameters (e.g., initial guess, boolean Jacobi)
         self.N = len(A)  # Size of the system (Number of Variables/Equations)
+        self.single_step = False
+        self.params["use_scaling"] = False
 

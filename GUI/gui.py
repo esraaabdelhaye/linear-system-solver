@@ -78,8 +78,7 @@ class NumericalSolverGUI:
         self.n_var = tk.StringVar(master, value="3")  # Default N=3 (Number of variables)
 
         # Dynamic parameter variables, initialized with defaults
-        self.use_scaling_var = tk.BooleanVar(value=False)
-        self.lu_form_var = tk.StringVar(master, value="Doolittle Form")
+        self.lu_form_var = tk.StringVar(master, value="Doolittle")
         self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")  # Example for 3x3
         self.max_iter_var = tk.StringVar(master, value=100)
         self.error_tol_var = tk.StringVar(master, value=0.01)
@@ -332,13 +331,10 @@ class NumericalSolverGUI:
         self.clear_params_frame()
         method = self.method_var.get()
 
-        if method in ["Gauss Elimination", "Gauss-Jordan"]:
-
-
         if method == "LU Decomposition":
             # Requires LU form selection
             ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(5, 5))
-            lu_options = ["Doolittle Form", "Crout Form", "Cholesky Form"]
+            lu_options = ["Doolittle", "Crout", "Cholesky"]
             ttk.Combobox(self.params_frame,
                          textvariable=self.lu_form_var,
                          values=lu_options,
@@ -501,43 +497,43 @@ class NumericalSolverGUI:
             }
 
         # --- 6. Display Results (Specifications 5, 6, 7) ---
-        # if results["success"]:
-        sol_text = ""
-        # Format the solution based on the requested precision
-        for i, val in enumerate(results["sol"]):
-            formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
-            sol_text += f"X{i + 1} = {formatted_val}\n"
+        if results["success"]:
+            sol_text = ""
+            # Format the solution based on the requested precision
+            for i, val in enumerate(results["sol"]):
+                formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
+                sol_text += f"X{i + 1} = {formatted_val}\n"
 
-        output_text = f"--- Solution ---\n\n{sol_text}"
+            output_text = f"--- Solution ---\n\n{sol_text}"
 
-        # Prepare logs
-        log_params = {k: v for k, v in params.items()}
+            # Prepare logs
+            log_params = {k: v for k, v in params.items()}
 
-        log_text = (
-            f"Method Used: {results['method_used']}\n"
-            f"Precision (Sig Figs): {results['precision']}\n"
-            f"Execution Time: {results['execution_time']:.6f} seconds\n"
-        )
+            log_text = (
+                f"Method Used: {results['method_used']}\n"
+                f"Precision (Sig Figs): {results['precision']}\n"
+                f"Execution Time: {results['execution_time']:.6f} seconds\n"
+            )
 
-        if results.get("iterations") != "N/A":
-            log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
+            if results.get("iterations") != "N/A":
+                log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
 
-        # Display parameters used
-        log_text += "\nParameters Used:\n"
-        log_text += json.dumps(log_params, indent=2)
+            # Display parameters used
+            log_text += "\nParameters Used:\n"
+            log_text += json.dumps(log_params, indent=2)
 
-        # else:
-        #     # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
-        # output_text = (
-        #     f"--- Result ---\n\n"
-        #     f"SYSTEM ERROR:\n"
-        #     f"{results.get('error_message', 'The system could not be solved.')}"
-        # )
-        # log_text = (
-        #     f"Method Used: {method}\n"
-        #     f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
-        #     f"Input Data Size: {N}x{N}\n"
-        # )
+        else:
+            # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
+            output_text = (
+                f"--- Result ---\n\n"
+                f"SYSTEM ERROR:\n"
+                f"{results.get('error_message', 'The system could not be solved.')}"
+            )
+            log_text = (
+                f"Method Used: {method}\n"
+                f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
+                f"Input Data Size: {N}x{N}\n"
+            )
 
         self.update_results_display(output_text, log_text)
 

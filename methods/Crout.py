@@ -15,13 +15,12 @@ class Crout(AbstractSolver):
 
     def solve(self) -> Dict[str, Any]:
 
-        self.validate()
         self.decompose()
         if (self.er == -1):
             return
         self.substitute()
 
-        return {"sol": self.x}
+        return {"success": True,"sol": self.x}
 
     def decompose(self):
         # getting scaling matrix

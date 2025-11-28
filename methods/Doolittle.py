@@ -13,14 +13,14 @@ class Doolittle(AbstractSolver):
         self.s = [0] * self.n
         self.a = self.A.copy()
 
-    def solve(self) -> Dict[str, Any]:
 
-        self.validate()
+    def solve(self) -> Dict[str, Any]:
+        print("Solving Doolittle...")
         self.decompose()
         if (self.er == -1):
             return
         self.substitute()
-        return {"sol": self.x}
+        return {"success": True,"sol": self.x}
 
     def decompose(self):
         # getting scaling matrix
@@ -31,7 +31,7 @@ class Doolittle(AbstractSolver):
                 if abs(self.a[i, j]) > self.s[i]:
                     self.s[i] = abs(self.a[i, j])
 
-        for k in range(self.n - 1):
+        for k in range(self.n-1):
             self.pivot(self.a, self.o, self.s, self.n, k)
             # check for singularity or near singularity
             if super().round_sig_fig(abs(self.a[self.o[k], k]) / self.s[self.o[k]]) < self.tol:
