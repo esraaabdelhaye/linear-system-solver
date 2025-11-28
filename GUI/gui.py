@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from typing import List, Tuple, Dict, Any, Optional
+import Solver as NumericalSolver
 
 class NumericalSolverGUI:
     """
@@ -325,3 +326,138 @@ class NumericalSolverGUI:
         for widget in [self.results_text, self.log_text]:
             widget.config(state=tk.NORMAL)
             widget.delete(1.0, tk.END)
+
+        self.results_text.insert(tk.END, text)
+        self.log_text.insert(tk.END, log)
+
+        for widget in [self.results_text, self.log_text]:
+            widget.config(state=tk.DISABLED)
+
+    def solve_system(self):
+        """
+        Main function executed when the 'SOLVE SYSTEM' button is pressed.
+        Coordinates input validation, DTO creation, and calls the solver backend.
+        """
+        self.update_results_display("Solving...", "Processing input and creating DTO...")
+
+        # 0. Get N (Number of Variables)
+        try:
+            N = int(self.n_var.get())
+        except ValueError:
+            messagebox.showerror("Input Error", "N must be an integer.")
+            self.update_results_display("", "ERROR: N input is invalid.")
+            return
+
+        # 1. Get and Validate Precision (Specification 4)
+        try:
+            precision = int(self.precision_var.get() or 5)  # Default to 5 sig figs
+            if precision <= 0 or precision > 15:
+                raise ValueError("Precision must be a positive integer (max 15).")
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
+            self.update_results_display("", f"ERROR: {e}")
+            return
+
+        # 2. Get and Validate System Input (Specification 1)
+        # Note: We pass a deep copy of A and b to prevent the solver from modifying the input data
+        parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
+
+        if parsed_matrix is None:
+            # Error handled inside parse_input via messagebox
+            self.update_results_display("", "ERROR: System input validation failed.")
+            return
+
+        A, b = parsed_matrix
+
+        # 3. Get Method Parameters (Specification 3)
+        params = self.get_user_params()
+        if "error" in params:
+            messagebox.showerror("Input Error", params["error"])
+            self.update_results_display("", f"ERROR: {params['error']}")
+            return
+
+        # 4. Final Parameter Validation (Specific to Iterative methods)
+        method = self.method_var.get()
+        if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
+            raw_guess = params.pop("Initial Guess (Raw)")  # Get raw string
+            guess_list = self.parse_guess_input(raw_guess)  # Parse into float list
+
+            if guess_list is None:
+                messagebox.showerror("Input Error", "Initial Guess must be a comma-separated list of numbers.")
+                self.update_results_display("", "ERROR: Invalid initial guess format.")
+                return
+
+            if len(guess_list) != N:
+                messagebox.showerror("Input Error",
+                                     f"Initial guess must have {N} components, matching the number of variables.")
+                self.update_results_display("", "ERROR: Initial guess size mismatch.")
+                return
+
+            params["Initial Guess"] = guess_list  # Store validated list in params
+
+        # --- 5. Create DTO and Call Solver ---
+        # Pass deep copies of A and b to ensure the solver works on its own version
+        system_data = SystemData(copy.deepcopy(A), copy.deepcopy(b), method, precision, params)
+        self.update_results_display("Solving...", f"Dispatching to {method} Solver...")
+
+        try:
+            # Dispatch DTO to the solver entry point
+            results = self.solver.solve(system_data)
+        except Exception as e:
+            # Catch unexpected errors during the Factory/Solver process
+            results = {
+                "success": False,
+                "error_message": f"Critical Failure during solving: {e}",
+                "execution_time": 0.0,
+            }
+
+        # --- 6. Display Results (Specifications 5, 6, 7) ---
+        if results["success"]:
+            sol_text = ""
+            # Format the solution based on the requested precision
+            for i, val in enumerate(results["solution"]):
+                formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
+                sol_text += f"X{i + 1} = {formatted_val}\n"
+
+            output_text = f"--- Solution ---\n\n{sol_text}"
+
+            # Prepare logs
+            log_params = {k: v for k, v in params.items()}
+
+            log_text = (
+                f"Method Used: {results['method_used']}\n"
+                f"Precision (Sig Figs): {results['precision']}\n"
+                f"Execution Time: {results['execution_time']:.6f} seconds\n"
+            )
+
+            if results.get("iterations") != "N/A":
+                log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
+
+            # Display parameters used
+            log_text += "\nParameters Used:\n"
+            log_text += json.dumps(log_params, indent=2)
+
+        else:
+            # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
+            output_text = (
+                f"--- Result ---\n\n"
+                f"SYSTEM ERROR:\n"
+                f"{results.get('error_message', 'The system could not be solved.')}"
+            )
+            log_text = (
+                f"Method Used: {method}\n"
+                f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
+                f"Input Data Size: {N}x{N}\n"
+            )
+
+        self.update_results_display(output_text, log_text)
+
+
+if __name__ == '__main__':
+    # Debug print to confirm script is running
+    print("Starting Numerical Solver GUI application...")
+    # Set up the main window
+    root = tk.Tk()
+    app = NumericalSolverGUI(root)
+    # Start the Tkinter event loop, which handles all GUI interactions
+    root.mainloop()
