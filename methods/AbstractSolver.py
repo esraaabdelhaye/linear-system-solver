@@ -1,23 +1,56 @@
 import math
 import numpy as np
 
+from System.SystemData import SystemData
+
+
 class AbstractSolver:
-    def __init__(self, A, b, precision=6, single_step=False):
-        self.A = np.array(A)
-        self.b = np.array(b)
-        self.precision = precision
-        self.single_step = single_step
-        self.n = len(self.A)
+    def __init__(self, data: SystemData):
+        self.A = np.array(data.A)
+        self.b = np.array(data.b)
+        self.precision = data.precision
+        self.single_step = data.single_step
+        self.n = data.N
         self.steps = []
 
     def solve(self):
         pass
 
     def validate(self):
-        if any(len(row) != self.n for row in self.A):
-            raise ValueError("Matrix must be square")
-        if len(self.A) != len(self.b):
-            raise ValueError("b's size must be equal to A's size")
+        A = self.A
+        b = self.b
+        n = self.n
+        for k in range(n):
+            # Find the row with the largest absolute value in column k
+            pivot_row = k
+            max_val = abs(A[k, k])
+            for i in range(k + 1, n):
+                if abs(A[i, k]) > max_val:
+                    max_val = abs(A[i, k])
+                    pivot_row = i
+
+            # If the pivot is almost zero, skip this column
+            if max_val < 1e-12:
+                continue
+
+            # Swap current row with pivot_row if needed
+            if pivot_row != k:
+                A[[k, pivot_row]] = A[[pivot_row, k]]
+                b[[k, pivot_row]] = b[[pivot_row, k]]
+
+            # Eliminate entries below pivot
+            for i in range(k + 1, n):
+                factor = A[i, k] / A[k, k]
+                A[i, k:] -= factor * A[k, k:]
+                A[i, k] = 0.
+                b[i] -= factor * b[k]
+
+        for i in range(n):
+            if np.all(np.abs(A[i]) < 1e-12) and abs(b[i]) > 1e-12:
+                raise ValueError(f"System is inconsistent (row {i} is all zeros in A but b != 0)")
+            if np.all(np.abs(A[i]) < 1e-12) and abs(b[i]) < 1e-12:
+                # Row is dependent -> may have infinitely many solutions
+                raise ValueError(f"System has infinite number of solutions")
 
     def round_sig_fig(self, x, n=None):
         if n is None:
