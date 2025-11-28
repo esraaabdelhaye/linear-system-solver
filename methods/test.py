@@ -1,6 +1,6 @@
 import numpy as np
 from doolittle import Doolittle
-from crout import Crout
+from Crout import Crout
 
 def test_case(name, A, b, tol=1e-9):
     n = len(A)

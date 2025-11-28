@@ -7,7 +7,6 @@ import methods.SolverFactory as SolverFactory
 
 
 
-
 class NumericalSolver:
     """
     The coordinator class: handles input parsing, DTO creation, and dispatching
