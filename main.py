@@ -17,13 +17,13 @@ def main():
 
     # Test Jacobi
     print("Testing Jacobi:")
-    solver_jacobi = iterative_method(X0, A, B, iterations, tol, jacobi=True)
+    solver_jacobi = iterative_method(X0, A, B,6, iterations, tol, jacobi=True)
     result_jacobi = solver_jacobi.solve()
     print("Result:", result_jacobi)
 
     # Test Gauss-Seidel
     print("\nTesting Gauss-Seidel:")
-    solver_gs = iterative_method(X0, A, B, iterations, tol, jacobi=False)
+    solver_gs = iterative_method(X0, A, B,6, iterations, tol, jacobi=False)
     result_gs = solver_gs.solve()
     print("Result:", result_gs)
 
