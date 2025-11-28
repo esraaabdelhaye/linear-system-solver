@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import time
 from methods.AbstractSolver import AbstractSolver
 
 from System.SystemData import SystemData
@@ -18,6 +17,7 @@ class Cholesky(AbstractSolver):
         # Compute scales if scaling is used, otherwise use ones
 
     def solve(self)-> Dict[str, Any]:
+
         """
         Main method: performs Cholesky decomposition, forward/backward substitution, and logs steps.
         Returns a dictionary containing solution, L matrix, execution time, and steps.
@@ -26,7 +26,17 @@ class Cholesky(AbstractSolver):
         A = np.copy(self.A).astype(float)
         b = np.copy(self.b).astype(float)
 
-        
+        # validation
+        # Check if square
+        if A.shape[0] != A.shape[1]:
+            raise ValueError("Matrix must be square")
+        # Check if symmetric
+        if not np.allclose(A, A.T, atol=1e-9):
+            raise ValueError("Matrix must be symmetric")
+        # Check positive eigenvalues
+        if np.any(np.linalg.eigvals(A) <= 0):
+            raise ValueError("Matrix must be positive definite (all eigenvalues > 0)")
+
         # Cholesky Decomposition (A = L * L^T)
         L = np.zeros((self.n, self.n))
         for i in range(self.n):
@@ -68,6 +78,7 @@ class Cholesky(AbstractSolver):
 
         # Return results
         return {
+            # "errorMessage": "",
             "sol": x
             # "L_matrix": L
         }

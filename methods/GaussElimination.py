@@ -83,16 +83,16 @@ class GaussElimination(AbstractSolver):
                     A[i, k:] -= factor * A[k, k:]  # Vectorized operation
                     b[i] -= factor * b[k]
 
-                    if self.single_step:
-                        self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
-                                       A.copy(), b.copy()))
+                    # if self.single_step:
+                    #     self.add_step((f"Eliminate: R{i} = R{i} - ({factor:.4f}) × R{k}",
+                    #                    A.copy(), b.copy()))
 
         # Check final pivot
         if abs(A[self.n - 1][self.n - 1]) < 1e-10:
             raise ValueError("Zero pivot encountered in final row.")
 
-        if self.single_step:
-            self.add_step(("Upper Triangular Form", A.copy(), b.copy()))
+        # if self.single_step:
+        #     self.add_step(("Upper Triangular Form", A.copy(), b.copy()))
 
         # Back Substitution
         x = np.zeros(self.n)
@@ -102,8 +102,8 @@ class GaussElimination(AbstractSolver):
             x[i] = (b[i] - sum_ax) / A[i][i]
             x[i] = self.round_sig_fig(x[i])
 
-            if self.single_step:
-                self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
+            # if self.single_step:
+            #     self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
 
         print(x)
         return {"sol": x}
