@@ -35,9 +35,9 @@ class IterativeMethod(AbstractSolver):
           # absolute relative error
           error = np.max(np.abs((self.X - old_x) / (self.X + 1e-12)))  # Division by zero protection
           if error < self.tol:
-             return {"sol": self.X, "iterations" : it}
+             return {"success": True, "sol": self.X, "iterations" : it}
 
-      return {"sol": None}
+      raise ValueError("Couldn't reach that tolerance in the given number of iterations")
 
     def dot_with_rounding(self, row, vec, adjust):
         total = 0

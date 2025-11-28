@@ -106,4 +106,4 @@ class GaussElimination(AbstractSolver):
             #     self.add_step((f"Back-sub: x[{i}] = {x[i]}", None, x.copy()))
 
         print(x)
-        return {"sol": x}
+        return {"success": True,"sol": x}

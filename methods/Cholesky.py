@@ -79,7 +79,7 @@ class Cholesky(AbstractSolver):
 
         # Return results
         return {
-            # "errorMessage": "",
+            "success": True,
             "sol": x
             # "L_matrix": L
         }

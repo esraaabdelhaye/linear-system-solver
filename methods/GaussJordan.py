@@ -104,4 +104,4 @@ class GaussJordan(AbstractSolver):
         for i in range(self.n):
             x[i] = self.round_sig_fig(x[i])
 
-        return {"sol": x}
+        return { "success": True,"sol": x}

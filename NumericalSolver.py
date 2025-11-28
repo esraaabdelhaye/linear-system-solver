@@ -4,6 +4,7 @@ import time
 from typing import List, Tuple, Dict, Any, Optional
 from System.SystemData import SystemData
 from methods.SolverFactory import SolverFactory
+from methods.AbstractSolver import AbstractSolver
 
 
 class NumericalSolver:
@@ -57,11 +58,11 @@ class NumericalSolver:
         start_time = time.time()
 
         try:
+
             # Factory provides the specific solver instance
             solver = SolverFactory.get_solver(data)
             results = solver.solve()
-            if results is not None:
-                print("NO RESULTS FOUND")
+
             print("results: ", results)
             # Add metadata back to results for GUI display
             results["method_used"] = data.method
@@ -70,13 +71,13 @@ class NumericalSolver:
 
             return results
 
-        # except ValueError as e:
-        #     # Handle solver-specific errors (e.g., convergence failure, singularity)
-        #     return {
-        #         "success": False,
-        #         "error_message": str(e),
-        #         "execution_time": time.time() - start_time,
-        #     }
+        except ValueError as e:
+            # Handle solver-specific errors (e.g., convergence failure, singularity)
+            return {
+                "success": False,
+                "error_message": str(e),
+                "execution_time": time.time() - start_time,
+            }
         except Exception as e:
             # Catch unexpected Python errors
             return {

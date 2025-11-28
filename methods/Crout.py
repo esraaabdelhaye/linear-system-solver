@@ -20,7 +20,7 @@ class Crout(AbstractSolver):
             return
         self.substitute()
 
-        return {"sol": self.x}
+        return {"success": True,"sol": self.x}
 
     def decompose(self):
         # getting scaling matrix
