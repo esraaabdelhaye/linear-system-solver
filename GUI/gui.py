@@ -5,8 +5,10 @@ import json
 # Import necessary type hints
 from typing import List, Tuple, Dict, Any, Optional
 import copy  # Needed for safe matrix copying
+
+from GUI.sourceGUI import SystemData
 from NumericalSolver import NumericalSolver
-import System.SystemData as SystemData
+
 
 
 class ScrollableFrame(ttk.Frame):
