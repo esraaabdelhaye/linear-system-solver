@@ -1,0 +1,94 @@
+import timeit
+from AbstractSolver import AbstractSolver
+
+
+class Crout(AbstractSolver):
+    def __init__(self, A, b, precision=6, single_step=False):
+        super().__init__(A, b, precision, single_step)
+        self.x = [0] * self.n
+        self.tol = 1e-9
+        self.er = 0
+        self.o = list(range(self.n))
+        self.s = [0] * self.n
+        self.a = self.A.copy()
+
+    def solve(self):
+        startTime = timeit.default_timer()
+        self.validate()
+        self.decompose()
+        if (self.er == -1):
+            return
+        self.substitute()
+        endTime = timeit.default_timer()
+        time = endTime - startTime
+        return self.x, time
+
+    def decompose(self):
+        # getting scaling matrix
+        for i in range(self.n):
+            self.o[i] = i
+            self.s[i] = abs(self.a[i, 0])
+            for j in range(1, self.n):
+                if abs(self.a[i, j]) > self.s[i]:
+                    self.s[i] = abs(self.a[i, j])
+
+        for j in range(self.n):  # column j
+
+            # pivoting (on column j)
+            self.pivot(self.a, self.o, self.s, self.n, j)
+
+            # check if scaled pivot is less than tol
+            if super().round_sig_fig(abs(self.a[self.o[j], j]) / self.s[self.o[j]]) < self.tol:
+                self.er = -1
+                return
+
+            # calculate L(i, j)
+            for i in range(j, self.n):
+                sum = self.a[self.o[i], j]
+                for k in range(j):
+                    sum = super().round_sig_fig(sum - self.a[self.o[i], k] * self.a[self.o[k], j])
+                self.a[self.o[i], j] = sum  # L(i, j)
+
+            # check zero pivot after building L(j,j)
+            if abs(self.a[self.o[j], j]) < self.tol:
+                self.er = -1
+                return
+
+            # calculate U(j, i)
+            for i in range(j + 1, self.n):
+                sum = self.a[self.o[j], i]
+                for k in range(j):
+                    sum = super().round_sig_fig(sum - self.a[self.o[j], k] * self.a[self.o[k], i])
+                self.a[self.o[j], i] = super().round_sig_fig(sum / self.a[self.o[j], j])  # U(j, i)
+
+    def substitute(self):
+        a, o, n, b, x = self.a, self.o, self.n, self.b, self.x
+        # forward sub
+        y = [0] * n
+        y[o[0]] = super().round_sig_fig(b[o[0]] / a[o[0], 0])
+        for i in range(1, n):
+            sum = b[o[i]]
+            for j in range(i):
+                sum = super().round_sig_fig(sum - a[o[i], j] * y[o[j]])
+            y[o[i]] = sum / a[o[i], i]
+
+        # backward sub
+        x[n - 1] = y[o[n - 1]]
+        for i in range(n - 2, -1, -1):
+            sum = y[o[i]]
+            for j in range(i + 1, n):
+                sum = super().round_sig_fig(sum - a[o[i], j] * x[j])
+            x[i] = sum
+
+    # finding large scaled coeffcient in column (magnitude wise)
+    def pivot(self, a, o, s, n, k):
+        p = k
+        big = super().round_sig_fig(abs(a[o[k], k]) / s[o[k]])
+        for i in range(k + 1, n):
+            dummy = super().round_sig_fig(abs(a[o[i], k] / s[o[i]]))
+            if (dummy > big):
+                big = dummy
+                p = i
+        dummy = o[p]
+        o[p] = o[k]
+        o[k] = dummy

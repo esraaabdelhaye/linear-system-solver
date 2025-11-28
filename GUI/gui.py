@@ -2,6 +2,9 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from typing import List, Tuple, Dict, Any, Optional
 import Solver as NumericalSolver
+import copy  # Needed for safe matrix copying
+import System.SystemData as SystemData
+import json
 
 class NumericalSolverGUI:
     """
