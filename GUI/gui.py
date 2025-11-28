@@ -6,7 +6,7 @@ import json
 from typing import List, Tuple, Dict, Any, Optional
 import copy  # Needed for safe matrix copying
 from Solver import NumericalSolver
-import System.SystemData as SystemData
+from System.SystemData import SystemData
 
 
 class NumericalSolverGUI:

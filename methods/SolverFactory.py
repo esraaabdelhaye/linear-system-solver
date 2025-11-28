@@ -1,10 +1,12 @@
-import System.SystemData as SystemData
-import methods.AbstractSolver as AbstractSolver
-import methods.GaussElimination as GaussEliminationSolver
-import methods.iterative_method as IterativeMethodSolver
-import methods.GaussJordan as GaussJordanSolver
-import methods.dolittle as DolittleSolver
-import methods.crout as CroutSolver
+
+from methods.AbstractSolver import AbstractSolver
+from methods.GaussElimination import GaussElimination
+from methods.GaussJordan import GaussJordan
+from methods.dolittle import Doolittle
+from methods.crout import Crout
+from methods.iterative_method import iterative_method
+from System.SystemData import SystemData
+
 
 class SolverFactory:
     """
@@ -12,12 +14,12 @@ class SolverFactory:
     specified in the SystemData DTO. This decouples the GUI from specific solvers.
     """
     SOLVERS = {
-        "Gauss Elimination": GaussEliminationSolver,
-        "Gauss-Jordan": GaussJordanSolver,
-        "doolittle": DolittleSolver,
-        "crout": CroutSolver,
+        "Gauss Elimination": GaussElimination,
+        "Gauss-Jordan": GaussJordan,
+        "doolittle": Doolittle,
+        "crout": Crout,
         # "cholesky": CholeskySolver
-        "iterative-method": IterativeMethodSolver,
+        "iterative-method": iterative_method,
     }
 
     @staticmethod

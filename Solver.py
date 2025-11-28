@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import messagebox
 import time
 from typing import List, Tuple, Dict, Any, Optional
-import System.SystemData as SystemData
-import methods.SolverFactory as SolverFactory
 
+from System.SystemData import SystemData
+from methods.SolverFactory import SolverFactory
 
 
 

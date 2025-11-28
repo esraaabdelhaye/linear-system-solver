@@ -9,7 +9,6 @@ class AbstractSolver:
         self.A = np.array(data.A)
         self.b = np.array(data.b)
         self.precision = data.precision
-        self.single_step = data.single_step
         self.n = data.N
         self.steps = []
 
