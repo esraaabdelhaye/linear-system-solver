@@ -66,10 +66,6 @@ class NumericalSolverGUI:
         self.master = master
         master.title("Numerical Linear System Solver (Project Phase 1)")
 
-        # FIX: The previous error occurred because an imported module was treated as a class.
-        # Since we cannot modify your external import (e.g., from 'Solver' module),
-        # we ensure that the placeholder class 'NumericalSolver' is correctly
-        # instantiated here, which is the correct pattern.
         self.solver = NumericalSolver()
 
         # --- Tkinter Variables for inputs ---
@@ -194,7 +190,6 @@ class NumericalSolverGUI:
         self.log_text.pack(fill='both', expand=True)
 
     def setup_styles(self):
-        """Sets up custom styles for a flat, modern aesthetic using the 'clam' theme as a base."""
         style = ttk.Style()
         # Use a more neutral modern base theme
         style.theme_use('clam')
@@ -439,9 +434,7 @@ class NumericalSolverGUI:
             self.update_results_display("", f"ERROR: {e}")
             return
 
-        # 2. Get and Validate System Input (Specification 1)
-        # Note: We pass a deep copy of A and b to prevent the solver from modifying the input data
-        # Uses the parse_input method from the NumericalSolver placeholder
+
         parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
 
         if parsed_matrix is None:
@@ -451,14 +444,13 @@ class NumericalSolverGUI:
 
         A, b = parsed_matrix
 
-        # 3. Get Method Parameters (Specification 3)
+
         params = self.get_user_params()
         if "error" in params:
             messagebox.showerror("Input Error", params["error"])
             self.update_results_display("", f"ERROR: {params['error']}")
             return
 
-        # 4. Final Parameter Validation (Specific to Iterative methods)
         method = self.method_var.get()
         if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
             raw_guess = params.pop("Initial Guess (Raw)")  # Get raw string
@@ -475,9 +467,8 @@ class NumericalSolverGUI:
                 self.update_results_display("", "ERROR: Initial guess size mismatch.")
                 return
 
-            params["Initial Guess"] = guess_list  # Store validated list in params
+            params["Initial Guess"] = guess_list
 
-        # if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
 
         # --- 5. Create DTO and Call Solver ---
         # Pass deep copies of A and b to ensure the solver works on its own version

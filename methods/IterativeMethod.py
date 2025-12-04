@@ -1,4 +1,3 @@
-import timeit
 import numpy as np
 from System.SystemData import SystemData
 from methods.AbstractSolver import AbstractSolver
