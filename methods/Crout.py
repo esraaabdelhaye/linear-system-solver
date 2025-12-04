@@ -93,6 +93,10 @@ class Crout(AbstractSolver):
                 sum = super().round_sig_fig(sum - a[o[i], j] * x[j])
             x[i] = sum
 
+        # final rounding
+        for i in range(n):
+            x[i] = super().round_sig_fig(x[i])
+
     # finding large scaled coeffcient in column (magnitude wise)
     def pivot(self, a, o, n, k):
         p = k
