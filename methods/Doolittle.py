@@ -88,6 +88,10 @@ class Doolittle(AbstractSolver):
             # Compute x(i)
             x[i] = super().round_sig_fig((y[o[i]] - sum) / a[o[i], i])
 
+        # final rounding
+        for i in range(n):
+            x[i] = super().round_sig_fig(x[i])
+
     # find the largest coeffecient in a column after scaling
     def pivot(self, a, o, n, k):
         p = k
