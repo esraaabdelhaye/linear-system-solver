@@ -15,7 +15,7 @@ class Doolittle(AbstractSolver):
         self.tol = 1e-9
         self.er = 0
         self.o = list(range(self.n))
-        self.s = [0] * self.n
+        # self.s = [0] * self.n
 
         # Copy of A (used to store both L and U)
         self.a = self.A.copy()
@@ -26,8 +26,8 @@ class Doolittle(AbstractSolver):
 
         # Doolittle LU decomposition
         self.decompose()
-        if (self.er == -1):
-            return
+        # if (self.er == -1):
+        #     return
         
         # Forward + backward substitution
         self.substitute()
@@ -35,21 +35,21 @@ class Doolittle(AbstractSolver):
 
     def decompose(self):
         # Build the scaling vector based on the largest absolute value in each row
-        for i in range(self.n):
-            self.o[i] = i
-            self.s[i] = abs(self.a[i, 0])
-            for j in range(1, self.n):
-                if abs(self.a[i, j]) > self.s[i]:
-                    self.s[i] = abs(self.a[i, j])
+        # for i in range(self.n):
+        #     self.o[i] = i
+        #     self.s[i] = abs(self.a[i, 0])
+        #     for j in range(1, self.n):
+        #         if abs(self.a[i, j]) > self.s[i]:
+        #             self.s[i] = abs(self.a[i, j])
 
         # Main Doolittle loop for all columns except last
         for k in range(self.n-1):
              # Perform partial pivoting
-            self.pivot(self.a, self.o, self.s, self.n, k)
+            self.pivot(self.a, self.o, self.n, k)
             # check for singularity or near singularity
-            if super().round_sig_fig(abs(self.a[self.o[k], k]) / self.s[self.o[k]]) < self.tol:
-                self.er = -1
-                return
+            # if super().round_sig_fig(abs(self.a[self.o[k], k]) / self.s[self.o[k]]) < self.tol:
+            #     self.er = -1
+            #     return
             
              # Eliminate entries below pivot
             for i in range(k + 1, self.n):
@@ -89,11 +89,11 @@ class Doolittle(AbstractSolver):
             x[i] = super().round_sig_fig((y[o[i]] - sum) / a[o[i], i])
 
     # find the largest coeffecient in a column after scaling
-    def pivot(self, a, o, s, n, k):
+    def pivot(self, a, o, n, k):
         p = k
-        big = super().round_sig_fig(abs(a[o[k], k]) / s[o[k]])
+        big = super().round_sig_fig(abs(a[o[k], k]))
         for i in range(k + 1, n):
-            dummy = super().round_sig_fig(abs(a[o[i], k] / s[o[i]]))
+            dummy = super().round_sig_fig(abs(a[o[i], k]))
             if (dummy > big):
                 big = dummy
                 p = i

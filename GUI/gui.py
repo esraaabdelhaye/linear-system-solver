@@ -66,10 +66,6 @@ class NumericalSolverGUI:
         self.master = master
         master.title("Numerical Linear System Solver (Project Phase 1)")
 
-        # FIX: The previous error occurred because an imported module was treated as a class.
-        # Since we cannot modify your external import (e.g., from 'Solver' module),
-        # we ensure that the placeholder class 'NumericalSolver' is correctly
-        # instantiated here, which is the correct pattern.
         self.solver = NumericalSolver()
 
         # --- Tkinter Variables for inputs ---
@@ -110,8 +106,6 @@ class NumericalSolverGUI:
 
         self.input_frame.columnconfigure(0, weight=1)
 
-        # --- N Input, Matrix Generation Block, and Solve Button (Combined) ---
-        # Changed the structure to group N input, Generate, and Solve buttons
         n_frame = ttk.Frame(self.input_frame)
         n_frame.pack(fill='x', pady=(10, 10))  # Adjusted top padding
 
@@ -169,8 +163,6 @@ class NumericalSolverGUI:
         self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, style='TEntry',
                                          font=('Arial', 10))
         self.precision_entry.pack(side=tk.RIGHT, padx=(10, 0))
-
-        # NOTE: The solve button placement (lines 354-356) has been moved and removed from here.
 
         # --- Output Frame (Right Side) ---
         self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="15",
@@ -440,7 +432,7 @@ class NumericalSolverGUI:
             return
 
         # 2. Get and Validate System Input (Specification 1)
-        # Note: We pass a deep copy of A and b to prevent the solver from modifying the input data
+        # We pass a deep copy of A and b to prevent the solver from modifying the input data
         # Uses the parse_input method from the NumericalSolver placeholder
         parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
 
