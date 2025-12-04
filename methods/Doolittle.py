@@ -12,8 +12,8 @@ class Doolittle(AbstractSolver):
         self.x = [0] * self.n
 
         # Tolerance for detecting zero/near-zero pivots
-        self.tol = 1e-9
-        self.er = 0
+        # self.tol = 1e-9
+        # self.er = 0
         self.o = list(range(self.n))
         # self.s = [0] * self.n
 
@@ -61,8 +61,8 @@ class Doolittle(AbstractSolver):
                 for j in range(k + 1, self.n):
                     self.a[self.o[i], j] = super().round_sig_fig(self.a[self.o[i], j] - factor * self.a[self.o[k], j])
         # Check final pivot (last diagonal element)
-        if super().round_sig_fig(abs(self.a[self.o[self.n - 1], self.n - 1])) < self.tol:
-            self.er = -1
+        # if super().round_sig_fig(abs(self.a[self.o[self.n - 1], self.n - 1])) < self.tol:
+        #     self.er = -1
 
     def substitute(self):
         a, o, n, b, x = self.a, self.o, self.n, self.b, self.x
@@ -88,7 +88,7 @@ class Doolittle(AbstractSolver):
             # Compute x(i)
             x[i] = super().round_sig_fig((y[o[i]] - sum) / a[o[i], i])
 
-    # find the largest coeffecient in a column after scaling
+    # find the largest coefficient in a column after scaling
     def pivot(self, a, o, n, k):
         p = k
         big = super().round_sig_fig(abs(a[o[k], k]))
