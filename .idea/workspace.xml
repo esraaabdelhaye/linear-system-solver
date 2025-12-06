@@ -5,10 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1ef5ce18-6e9c-4bfd-b626-b438842b4588" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/RootFinder/AbstractRootFinder.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/Bisection.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/FalsePosition.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/FixedPoint.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/ModifiedNewtonRaphson.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/NewtonRaphson.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/RootFinderData.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/RootFinderFactory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/Secant.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/RootFinder/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/methods/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_root_finder.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/gui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/methods/AbstractSolver.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/AbstractSolver.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/methods/IterativeMethod.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/IterativeMethod.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,13 +44,16 @@
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/esraaabdelhaye/linear-system-solver.git&quot;,
-    &quot;accountId&quot;: &quot;edfdc24d-2fd5-4f6d-891e-01769edacbcc&quot;
+    &quot;accountId&quot;: &quot;fa317155-4228-4696-9530-6eda29a5d2ad&quot;
   }
 }</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
   <component name="ProjectId" id="35ur8RiL0akbf2dv4fzqAC5Zf2g" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -59,6 +72,7 @@
     "Python.gui.executor": "Run",
     "Python.main.executor": "Run",
     "Python.sourceGUI.executor": "Run",
+    "Python.test_root_finder.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -71,10 +85,16 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Lenovo\PycharmProjects\linear-system-solver" />
+      <recent name="C:\Users\Lenovo\PycharmProjects\linear-system-solver\methods\RootFinder" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-a101402ee41c-968fe969f28a-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.28238.29" />
+        <option value="bundled-python-sdk-4e2b1448bda8-9a97661f3031-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.27397.106" />
       </set>
     </attachedChunks>
   </component>
