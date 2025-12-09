@@ -423,16 +423,15 @@ class NumericalSolverGUI:
                 fill='x')
 
         elif method == "False-Position":
-            """
-            placeholder_frame = ttk.Frame(self.root_params_frame)
-            placeholder_frame.pack(fill='both', expand=True, pady=10)
-            ttk.Label(placeholder_frame, text="⏳ FALSE-POSITION METHOD", style='Title.TLabel',
-                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
-            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
-                      foreground="#E74C3C").pack(fill='x', pady=5)
-            ttk.Label(placeholder_frame, text="Required Parameters:\n• Interval [a, b]\n• Same as Bisection method",
-                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
-            """
+            ttk.Label(self.root_params_frame, text="Interval [a, b]:", style='TLabel').pack(fill='x', pady=(5, 5))
+            a_frame = ttk.Frame(self.root_params_frame)
+            a_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(a_frame, text="a:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(a_frame, textvariable=self.interval_a_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
+            b_frame = ttk.Frame(self.root_params_frame)
+            b_frame.pack(fill='x')
+            ttk.Label(b_frame, text="b:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(b_frame, textvariable=self.interval_b_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
 
         elif method == "Newton-Raphson":
             """
@@ -556,9 +555,11 @@ class NumericalSolverGUI:
             elif method == "Fixed Point":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
 
-            # REST OF TEAM'S METHODS
+            elif method == "False-Position":
+                params["interval_a"] = float(self.interval_a_var.get())
+                params["interval_b"] = float(self.interval_b_var.get())
 
-            elif method in ["False-Position", "Newton-Raphson", "Modified Newton-Raphson", "Secant"]:
+            elif method in ["Newton-Raphson", "Modified Newton-Raphson", "Secant"]:
                 messagebox.showerror("Not Implemented", f"{method} is not yet implemented")
                 return
         except ValueError as e:
