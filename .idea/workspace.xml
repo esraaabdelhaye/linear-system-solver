@@ -3,21 +3,19 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
+    <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="1ef5ce18-6e9c-4bfd-b626-b438842b4588" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/linear-system-solver.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/linear-system-solver.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/gui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RootFinder/AbstractRootFinder.py" beforeDir="false" afterPath="$PROJECT_DIR$/RootFinder/AbstractRootFinder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RootFinder/NewtonRaphson.py" beforeDir="false" afterPath="$PROJECT_DIR$/RootFinder/NewtonRaphson.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RootFinder/RootFinderFactory.py" beforeDir="false" afterPath="$PROJECT_DIR$/RootFinder/RootFinderFactory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RootFinder/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/RootFinder/__init__.py" afterDir="false" />
-    </list>
+    <list default="true" id="1ef5ce18-6e9c-4bfd-b626-b438842b4588" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -63,10 +61,15 @@
     "Python.gui.executor": "Run",
     "Python.main.executor": "Run",
     "Python.sourceGUI.executor": "Run",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Esraa",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "final__version",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/CSED/Second Year/First Semester/Numerical Computing/Project/linear-system-solver",
     "nodejs_package_manager_path": "npm",
@@ -82,6 +85,7 @@
       </set>
     </attachedChunks>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="1ef5ce18-6e9c-4bfd-b626-b438842b4588" name="Changes" comment="" />
@@ -90,6 +94,7 @@
       <option name="presentableId" value="Default" />
       <updated>1763970638464</updated>
       <workItem from="1763970639686" duration="96000" />
+      <workItem from="1765294746409" duration="7000" />
     </task>
     <servers />
   </component>
