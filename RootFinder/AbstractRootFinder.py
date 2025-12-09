@@ -12,6 +12,8 @@ class AbstractRootFinder(ABC):
         self.precision = data.precision
         self.params = data.params
         self.steps = []
+        self.expr = sp.sympify(self.equation)
+        self.x_sym = sp.Symbol('x')
 
     def round_sig_fig(self, x: float, n: int = None) -> float:
         if n is None:
@@ -22,26 +24,14 @@ class AbstractRootFinder(ABC):
 
     def evaluate(self, x: float) -> float:
         try:
-            safe_expr = (self.equation
-                         .replace('^', '**')
-                         .replace('sin', 'math.sin')
-                         .replace('cos', 'math.cos')
-                         .replace('exp', 'math.exp')
-                         .replace('sqrt', 'math.sqrt')
-                         .replace('log', 'math.log')
-                         .replace('tan', 'math.tan')
-                         .replace('abs', 'math.fabs'))
-            return eval(safe_expr, {"x": x, "math": math, "__builtins__": {}})
+            result = self.expr.subs(self.x_sym, x)
+            return float(result)
         except Exception as e:
             raise ValueError(f"Error evaluating equation '{self.equation}' at x={x}: {e}")
 
-
     def evaluate_first_derivative(self, x: float) -> float:
-        x_sym = sp.Symbol('x')
-        expr = sp.sympify(self.equation)
-
-        derivative = sp.diff(expr, x_sym)
-        return float(derivative.subs(x_sym, x))
+        derivative = sp.diff(self.expr, self.x_sym)
+        return float(derivative.subs(self.x_sym, x))
 
 
     def numerical_derivative(self, x: float, h: float = 1e-7) -> float:
