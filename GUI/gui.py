@@ -1,548 +1,708 @@
-import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+"""
+Numerical Solver GUI - Phase 1 & Phase 2
+File: GUI/gui.py
 
-import json
-# Import necessary type hints
-from typing import List, Tuple, Dict, Any, Optional
-import copy  # Needed for safe matrix copying
-from NumericalSolver import NumericalSolver
-from System.SystemData import SystemData
+GUI Application with two tabs:
+- Phase 1: Linear System Solver (Gaussian Elimination, Gauss-Jordan, LU Decomposition, Iterative Methods)
+- Phase 2: Root Finder (Bisection, False-Position, Fixed Point, Newton-Raphson, etc.)
 
+Includes BONUS: Single-Step Mode for step-by-step iteration visualization
+"""
+
+# ============================================================================
+# IMPORTS
+# ============================================================================
+
+import tkinter as tk  # GUI framework
+from tkinter import ttk, scrolledtext, messagebox  # GUI components and dialogs
+from typing import List  # Type hints
+import copy  # For deep copying matrices
+import time  # For timing execution
+
+# Phase 1 Imports
+from NumericalSolver import NumericalSolver  # Linear system solver coordinator
+from System.SystemData import SystemData  # Phase 1 DTO
+
+# Phase 2 Imports
+from RootFinder import RootFinderData, RootFinderFactory
+
+
+# ============================================================================
+# SCROLLABLE FRAME HELPER
+# ============================================================================
 
 class ScrollableFrame(ttk.Frame):
+    """
+    Custom frame widget with scrollbars for large content
+    Used in both Phase 1 and Phase 2 input areas
+    """
+
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
-
-        # --- Canvas ---
         self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0)
-
-        # --- Scrollbars ---
         self.v_scroll = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.h_scroll = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
-
-        # --- Frame inside canvas ---
         self.scrollable_frame = ttk.Frame(self.canvas)
-
-        # Place the inner frame inside the canvas
         self.window_id = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
 
-        # --- Configure scroll region dynamically ---
         def update_scrollregion(event):
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
         self.scrollable_frame.bind("<Configure>", update_scrollregion)
-
-        # --- Connect canvas to scrollbars ---
         self.canvas.configure(yscrollcommand=self.v_scroll.set, xscrollcommand=self.h_scroll.set)
-
-        # --- Layout ---
         self.canvas.grid(row=0, column=0, sticky="nsew")
         self.v_scroll.grid(row=0, column=1, sticky="ns")
         self.h_scroll.grid(row=1, column=0, sticky="ew")
-
-        # Make the frame expandable
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
+        self.scrollable_frame.bind("<Enter>", lambda e: self.canvas.bind_all("<MouseWheel>",
+                                                                             lambda ev: self.canvas.yview_scroll(
+                                                                                 int(-ev.delta / 120), "units")))
+        self.scrollable_frame.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
 
-        # --- Optional: mouse wheel support for vertical scrolling ---
-        self.scrollable_frame.bind(
-            "<Enter>",
-            lambda e: self.canvas.bind_all("<MouseWheel>",
-                                           lambda ev: self.canvas.yview_scroll(int(-ev.delta / 120), "units"))
-        )
-        self.scrollable_frame.bind(
-            "<Leave>",
-            lambda e: self.canvas.unbind_all("<MouseWheel>")
-        )
 
+# ============================================================================
+# MAIN GUI APPLICATION
+# ============================================================================
 
 class NumericalSolverGUI:
     """
-    The main Tkinter application window responsible for the interactive GUI
-    (Specifications 1-5).
+    Main GUI Application with Phase 1 and Phase 2
+
+    Features:
+    - Two-tab interface for Phase 1 (Linear Systems) and Phase 2 (Root Finding)
+    - Dynamic parameter updating based on selected method
+    - Single-step mode bonus feature for Phase 2
+    - Comprehensive error handling and user feedback
     """
 
     def __init__(self, master):
-        self.master = master
-        master.title("Numerical Linear System Solver (Project Phase 1)")
+        """
+        Initialize the GUI application
 
-        # FIX: The previous error occurred because an imported module was treated as a class.
-        # Since we cannot modify your external import (e.g., from 'Solver' module),
-        # we ensure that the placeholder class 'NumericalSolver' is correctly
-        # instantiated here, which is the correct pattern.
+        Args:
+            master: Tkinter root window
+        """
+        self.master = master
+        master.title("Numerical Solver - Phase 1 & 2")
+        master.geometry("1400x900")
+
+        # Initialize solver coordinator
         self.solver = NumericalSolver()
 
-        # --- Tkinter Variables for inputs ---
+        # ====================================================================
+        # PHASE 1 VARIABLES (Linear Systems)
+        # ====================================================================
         self.method_var = tk.StringVar(master, value="Gauss Elimination")
-        self.precision_var = tk.StringVar(master, value="5")  # Default precision (Spec 4)
-        self.n_var = tk.StringVar(master, value="3")  # Default N=3 (Number of variables)
-
-        # Dynamic parameter variables, initialized with defaults
+        self.precision_var = tk.StringVar(master, value="5")
+        self.n_var = tk.StringVar(master, value="3")
         self.lu_form_var = tk.StringVar(master, value="Doolittle")
-        self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")  # Example for 3x3
-        self.max_iter_var = tk.StringVar(master, value=100)
-        self.error_tol_var = tk.StringVar(master, value=0.01)
+        self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")
+        self.max_iter_var = tk.StringVar(master, value="100")
+        self.error_tol_var = tk.StringVar(master, value="0.01")
 
+        # ====================================================================
+        # PHASE 2 VARIABLES (Root Finding)
+        # ====================================================================
+        self.equation_var = tk.StringVar(master, value="x**2 - 4")
+        self.root_method_var = tk.StringVar(master, value="Bisection")
+        self.root_precision_var = tk.StringVar(master, value="5")
+        self.epsilon_var = tk.StringVar(master, value="0.00001")
+        self.max_iter_root_var = tk.StringVar(master, value="50")
+        self.interval_a_var = tk.StringVar(master, value="-5")
+        self.interval_b_var = tk.StringVar(master, value="5")
+        self.initial_guess_root_var = tk.StringVar(master, value="1")
+        self.second_guess_var = tk.StringVar(master, value="2")
+        self.single_step_var = tk.BooleanVar(value=False)
 
-        # Storage for the dynamically created matrix input widgets
+        # Matrix input widgets storage
         self.matrix_entry_widgets: List[List[tk.Entry]] = []
 
-        # --- Setup Appearance ---
+        # Single-step mode variables
+        self.step_mode_active = False
+        self.current_step_index = 0
+        self.all_steps = []
+        self.execution_time = 0.0
+
+        # Setup styles and UI
         self.setup_styles()
-
-        # --- Setup Main Frames (Two-column layout) ---
-        # Increased padding for a cleaner, less cramped look
-        self.main_frame = ttk.Frame(master, padding="20 20 20 20", style='Main.TFrame')
-        self.main_frame.pack(fill='both', expand=True)
-        self.main_frame.columnconfigure(0, weight=1)  # Left input column
-        self.main_frame.columnconfigure(1, weight=1)  # Right output column
-
-        # --- Input Frame (Left Side) ---
-        self.scroll_frame = ScrollableFrame(self.main_frame)
-        self.scroll_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
-        self.scroll_frame.scrollable_frame.columnconfigure(0, weight=1)
-
-        self.input_frame = ttk.LabelFrame(self.scroll_frame.scrollable_frame,
-                                          text="1. System Input & Method Selection",
-                                          padding="15",
-                                          style='Input.TLabelframe')
-        self.input_frame.pack(fill='both', expand=True)
-
-        self.input_frame.columnconfigure(0, weight=1)
-
-        # --- N Input, Matrix Generation Block, and Solve Button (Combined) ---
-        # Changed the structure to group N input, Generate, and Solve buttons
-        n_frame = ttk.Frame(self.input_frame)
-        n_frame.pack(fill='x', pady=(10, 10))  # Adjusted top padding
-
-        # N Input controls (packed left)
-        ttk.Label(n_frame, text="N (Variables/Equations):", style='Title.TLabel').pack(side=tk.LEFT, padx=(0, 5))
-        self.n_entry = ttk.Entry(n_frame, textvariable=self.n_var, width=5, font=('Arial', 10))
-        self.n_entry.pack(side=tk.LEFT, padx=(0, 15))
-
-        # Generate Matrix Button (packed left)
-        ttk.Button(n_frame, text="Generate Matrix", command=self.generate_matrix_input, style='Small.TButton').pack(
-            side=tk.LEFT, padx=(0, 20))
-
-        # 5. Solve Button (New position, packed left, beside Generate Matrix)
-        self.solve_button = ttk.Button(n_frame, text="SOLVE SYSTEM", command=self.solve_system,
-                                       style='InlineSolve.TButton')
-        self.solve_button.pack(side=tk.LEFT)
-
-        # Container frame for the dynamic matrix grid
-        ttk.Label(self.input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
-        self.matrix_input_container = ttk.Frame(self.input_frame, style='Matrix.TFrame')
-        self.matrix_input_container.pack(fill='x', expand=False, pady=(0, 15))
-
-        # Initial draw of the 3x3 matrix input grid
-        self.generate_matrix_input()
-
-        # 2. Method Selection (Specification 2)
-        ttk.Label(self.input_frame, text="2. Choose Solving Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
-        self.method_options = [
-            "Gauss Elimination",
-            "Gauss-Jordan",
-            "LU Decomposition",
-            "Jacobi-Iteration",
-            "Gauss-Seidel"
-        ]
-        self.method_dropdown = ttk.Combobox(self.input_frame,
-                                            textvariable=self.method_var,
-                                            values=self.method_options,
-                                            state="readonly",
-                                            style='TCombobox',
-                                            font=('Arial', 10))
-        self.method_dropdown.pack(fill='x', pady=(0, 15))
-        # Trigger dynamic parameter update whenever the method changes
-        self.method_var.trace_add("write", self.update_parameters_frame)
-
-        # 3. Dynamic Parameters Frame (Specification 3)
-        self.params_frame = ttk.LabelFrame(self.input_frame, text="3. Method Parameters", padding="15",
-                                           style='Input.TLabelframe')
-        self.params_frame.pack(fill='x', pady=(10, 15))
-        self.update_parameters_frame()  # Initial call to display default parameters
-
-        # 4. Precision Input (Specification 4)
-        precision_frame = ttk.Frame(self.input_frame)
-        precision_frame.pack(fill='x', pady=(5, 10))
-        ttk.Label(precision_frame, text="Precision (Significant Figures):", style='Title.TLabel').pack(side=tk.LEFT)
-        self.precision_entry = ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, style='TEntry',
-                                         font=('Arial', 10))
-        self.precision_entry.pack(side=tk.RIGHT, padx=(10, 0))
-
-        # NOTE: The solve button placement (lines 354-356) has been moved and removed from here.
-
-        # --- Output Frame (Right Side) ---
-        self.output_frame = ttk.LabelFrame(self.main_frame, text="Solution & Results", padding="15",
-                                           style='Output.TLabelframe')
-        self.output_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
-        self.output_frame.columnconfigure(0, weight=1)
-
-        # Output area for the solution vector (X1, X2, ...)
-        ttk.Label(self.output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
-        self.results_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, height=20, width=50,
-                                                      font=("Consolas", 11), state=tk.DISABLED, bg="#F0F8FF",
-                                                      fg="#004D99",
-                                                      relief=tk.FLAT)  # Flat relief for modern look
-        self.results_text.pack(fill='both', expand=True)
-
-        # Output area for execution time, iterations, and parameters (Specification 7)
-        ttk.Label(self.output_frame, text="Details & Logs:", style='Title.TLabel').pack(fill='x', pady=(15, 5))
-        self.log_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, height=5, width=50,
-                                                  font=("Consolas", 10), state=tk.DISABLED, bg="#F5F5F5", fg="#555555",
-                                                  relief=tk.FLAT)  # Flat relief for modern look
-        self.log_text.pack(fill='both', expand=True)
+        self.setup_notebook()
 
     def setup_styles(self):
-        """Sets up custom styles for a flat, modern aesthetic using the 'clam' theme as a base."""
+        """Configure ttk styles for modern appearance"""
         style = ttk.Style()
-        # Use a more neutral modern base theme
         style.theme_use('clam')
 
-        # --- Color Palette (Flat Design) ---
-        PRIMARY_ACCENT = "#3498DB"  # Bright Blue for accents/primary actions
-        SECONDARY_ACCENT = "#2ECC71"  # Green for the solve button/success
-        BACKGROUND_LIGHT = "#ECF0F1"  # Very light grey background
-        BACKGROUND_FRAME = "#FFFFFF"  # Pure white for contained elements
-        TEXT_DARK = "#2C3E50"  # Dark slate grey for primary text
-        TEXT_MEDIUM = "#7F8C8D"  # Medium grey for secondary text
+        # Color palette
+        PRIMARY_ACCENT = "#3498DB"
+        SECONDARY_ACCENT = "#2ECC71"
+        BACKGROUND_LIGHT = "#ECF0F1"
+        BACKGROUND_FRAME = "#FFFFFF"
+        TEXT_DARK = "#2C3E50"
+        TEXT_MEDIUM = "#7F8C8D"
 
-        # --- General Styles ---
+        # General styles
         style.configure("Main.TFrame", background=BACKGROUND_LIGHT)
-
-        # --- Labels and Titles (Clean, consistent font) ---
         style.configure("TLabel", font=("Arial", 10), background=BACKGROUND_FRAME, foreground=TEXT_DARK)
         style.configure("Title.TLabel", font=("Arial", 11, "bold"), foreground=PRIMARY_ACCENT,
                         background=BACKGROUND_FRAME)
-
-        # --- Label Frames (Containers) ---
-        # Set background to white for content clarity, border to primary blue
         style.configure("Input.TLabelframe", font=("Arial", 12, "bold"), foreground=TEXT_DARK,
-                        background=BACKGROUND_FRAME, bordercolor=PRIMARY_ACCENT)
-        style.configure("Input.TLabelframe.Label", background=BACKGROUND_FRAME, foreground=PRIMARY_ACCENT,
-                        bordercolor=PRIMARY_ACCENT)
-
+                        background=BACKGROUND_FRAME)
         style.configure("Output.TLabelframe", font=("Arial", 12, "bold"), foreground=TEXT_DARK,
-                        background=BACKGROUND_FRAME, bordercolor=SECONDARY_ACCENT)
-        style.configure("Output.TLabelframe.Label", background=BACKGROUND_FRAME, foreground=SECONDARY_ACCENT,
-                        bordercolor=SECONDARY_ACCENT)
-
-        # --- Buttons (Flat and Primary Colors) ---
+                        background=BACKGROUND_FRAME)
         style.configure("TButton", font=("Arial", 10, "bold"), padding=[10, 5], background=PRIMARY_ACCENT,
                         foreground='white', relief=tk.FLAT)
-        style.configure("Small.TButton", font=("Arial", 9), padding=[8, 4], background="#BDC3C7", foreground=TEXT_DARK,
-                        relief=tk.FLAT)
-
-        # Solve Button (Original Full-Width Style - Kept for reference, but not used in the new location)
-        style.configure("Solve.TButton", font=("Arial", 12, "bold"), foreground='white', background=SECONDARY_ACCENT,
-                        padding=[15, 8], relief=tk.FLAT)
-        style.map("Solve.TButton",
-                  background=[('active', '#27AE60'), ('!disabled', SECONDARY_ACCENT)],
-                  foreground=[('active', 'white'), ('!disabled', 'white')])
-
-        # New style for inline solve button (reduced padding and font size for horizontal placement)
         style.configure("InlineSolve.TButton", font=("Arial", 10, "bold"), foreground='white',
-                        background=SECONDARY_ACCENT,
-                        padding=[10, 5], relief=tk.FLAT)
-        style.map("InlineSolve.TButton",
-                  background=[('active', '#27AE60'), ('!disabled', SECONDARY_ACCENT)],
-                  foreground=[('active', 'white'), ('!disabled', 'white')])
+                        background=SECONDARY_ACCENT, padding=[10, 5], relief=tk.FLAT)
 
-        # --- Entries and Comboboxes (Flat borders) ---
-        style.configure("TEntry", padding=[5, 5], background='white', bordercolor=TEXT_MEDIUM, fieldbackground='white',
-                        foreground=TEXT_DARK)
-        style.configure("TCombobox", padding=[5, 5], background='white', bordercolor=TEXT_MEDIUM,
-                        fieldbackground='white', foreground=TEXT_DARK)
+    def setup_notebook(self):
+        """Setup main notebook with Phase 1 and Phase 2 tabs"""
+        self.notebook = ttk.Notebook(self.master)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
 
-        # Apply a simple border/relief for input clarity
-        style.configure("Matrix.TFrame", background=BACKGROUND_FRAME)
-        style.configure("TFrame", background=BACKGROUND_FRAME)
+        # Phase 1 Tab
+        self.phase1_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.phase1_frame, text="Phase 1: Linear Systems")
+        self.setup_phase1_ui(self.phase1_frame)
+
+        # Phase 2 Tab
+        self.phase2_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.phase2_frame, text="Phase 2: Root Finding")
+        self.setup_phase2_ui(self.phase2_frame)
+
+    def setup_phase1_ui(self, parent):
+        """Setup Phase 1 Linear Systems UI"""
+        main_frame = ttk.Frame(parent, padding="20 20 20 20")
+        main_frame.pack(fill='both', expand=True)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=1)
+
+        # Input Frame (Left)
+        scroll_frame = ScrollableFrame(main_frame)
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        scroll_frame.scrollable_frame.columnconfigure(0, weight=1)
+
+        input_frame = ttk.LabelFrame(scroll_frame.scrollable_frame, text="System Input & Method Selection",
+                                     padding="15")
+        input_frame.pack(fill='both', expand=True)
+        input_frame.columnconfigure(0, weight=1)
+
+        # N Input
+        n_frame = ttk.Frame(input_frame)
+        n_frame.pack(fill='x', pady=(10, 10))
+        ttk.Label(n_frame, text="N (Variables/Equations):", style='Title.TLabel').pack(side=tk.LEFT, padx=(0, 5))
+        self.n_entry = ttk.Entry(n_frame, textvariable=self.n_var, width=5, font=('Arial', 10))
+        self.n_entry.pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Button(n_frame, text="Generate Matrix", command=self.generate_matrix_input).pack(side=tk.LEFT, padx=(0, 20))
+        self.solve_button = ttk.Button(n_frame, text="SOLVE", command=self.solve_linear_system)
+        self.solve_button.pack(side=tk.LEFT)
+
+        # Matrix Input
+        ttk.Label(input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
+        self.matrix_input_container = ttk.Frame(input_frame)
+        self.matrix_input_container.pack(fill='x', expand=False, pady=(0, 15))
+        self.generate_matrix_input()
+
+        # Method Selection
+        ttk.Label(input_frame, text="Solving Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
+        self.method_options = ["Gauss Elimination", "Gauss-Jordan", "LU Decomposition", "Jacobi-Iteration",
+                               "Gauss-Seidel"]
+        self.method_dropdown = ttk.Combobox(input_frame, textvariable=self.method_var, values=self.method_options,
+                                            state="readonly", font=('Arial', 10))
+        self.method_dropdown.pack(fill='x', pady=(0, 15))
+        self.method_var.trace_add("write", self.update_parameters_frame)
+
+        # Parameters Frame
+        self.params_frame = ttk.LabelFrame(input_frame, text="Method Parameters", padding="15")
+        self.params_frame.pack(fill='x', pady=(10, 15))
+        self.update_parameters_frame()
+
+        # Precision
+        precision_frame = ttk.Frame(input_frame)
+        precision_frame.pack(fill='x', pady=(5, 10))
+        ttk.Label(precision_frame, text="Precision (Significant Figures):", style='Title.TLabel').pack(side=tk.LEFT)
+        ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, font=('Arial', 10)).pack(side=tk.RIGHT,
+                                                                                                       padx=(10, 0))
+
+        # Output Frame (Right)
+        output_frame = ttk.LabelFrame(main_frame, text="Solution & Results", padding="15")
+        output_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
+        output_frame.columnconfigure(0, weight=1)
+
+        ttk.Label(output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
+        self.results_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, height=20, width=50,
+                                                      font=("Consolas", 11), state=tk.DISABLED, bg="#F0F8FF",
+                                                      fg="#004D99", relief=tk.FLAT)
+        self.results_text.pack(fill='both', expand=True)
+
+        ttk.Label(output_frame, text="Details & Logs:", style='Title.TLabel').pack(fill='x', pady=(15, 5))
+        self.log_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, height=5, width=50, font=("Consolas", 10),
+                                                  state=tk.DISABLED, bg="#F5F5F5", fg="#555555", relief=tk.FLAT)
+        self.log_text.pack(fill='both', expand=True)
+
+    def setup_phase2_ui(self, parent):
+        """Setup Phase 2 Root Finding UI"""
+        main_frame = ttk.Frame(parent, padding="20 20 20 20")
+        main_frame.pack(fill='both', expand=True)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=1)
+
+        # Input Frame (Left)
+        scroll_frame = ScrollableFrame(main_frame)
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        scroll_frame.scrollable_frame.columnconfigure(0, weight=1)
+
+        input_frame = ttk.LabelFrame(scroll_frame.scrollable_frame, text="Equation & Method Selection", padding="15")
+        input_frame.pack(fill='both', expand=True)
+        input_frame.columnconfigure(0, weight=1)
+
+        # Equation Input
+        ttk.Label(input_frame, text="Equation (use x as variable):", style='Title.TLabel').pack(fill='x', pady=(10, 5))
+        ttk.Label(input_frame, text="Examples: x**2 - 4, sin(x) - x/2, exp(x) - 3*x", font=("Arial", 9),
+                  foreground="#7F8C8D").pack(fill='x', pady=(0, 5))
+        self.equation_entry = ttk.Entry(input_frame, textvariable=self.equation_var, font=('Arial', 10))
+        self.equation_entry.pack(fill='x', pady=(0, 15))
+
+        # Method Selection
+        ttk.Label(input_frame, text="Root Finding Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
+        self.root_methods = ["Bisection", "False-Position", "Fixed Point", "Newton-Raphson", "Modified Newton-Raphson",
+                             "Secant"]
+        self.root_method_dropdown = ttk.Combobox(input_frame, textvariable=self.root_method_var,
+                                                 values=self.root_methods, state="readonly", font=('Arial', 10))
+        self.root_method_dropdown.pack(fill='x', pady=(0, 15))
+        self.root_method_var.trace_add("write", self.update_root_parameters_frame)
+
+        # Parameters Frame
+        self.root_params_frame = ttk.LabelFrame(input_frame, text="Method Parameters", padding="15")
+        self.root_params_frame.pack(fill='x', pady=(10, 15))
+        self.update_root_parameters_frame()
+
+        # Precision & Stopping Criteria
+        criteria_frame = ttk.LabelFrame(input_frame, text="Precision & Stopping Criteria", padding="15")
+        criteria_frame.pack(fill='x', pady=(10, 15))
+
+        ttk.Label(criteria_frame, text="Precision (Sig Figs):", style='TLabel').pack(fill='x', pady=(5, 2))
+        ttk.Entry(criteria_frame, textvariable=self.root_precision_var, font=('Arial', 10)).pack(fill='x')
+
+        ttk.Label(criteria_frame, text="Epsilon (EPS):", style='TLabel').pack(fill='x', pady=(10, 2))
+        ttk.Entry(criteria_frame, textvariable=self.epsilon_var, font=('Arial', 10)).pack(fill='x')
+
+        ttk.Label(criteria_frame, text="Max Iterations:", style='TLabel').pack(fill='x', pady=(10, 2))
+        ttk.Entry(criteria_frame, textvariable=self.max_iter_root_var, font=('Arial', 10)).pack(fill='x')
+
+        # Single Step Mode Toggle (BONUS)
+        single_step_frame = ttk.Frame(input_frame)
+        single_step_frame.pack(fill='x', pady=(15, 10))
+        ttk.Checkbutton(single_step_frame, text="Enable Single Step Mode (Bonus)", variable=self.single_step_var).pack(
+            side=tk.LEFT)
+        ttk.Label(single_step_frame, text="View each iteration step-by-step", font=("Arial", 9),
+                  foreground="#7F8C8D").pack(side=tk.LEFT, padx=(10, 0))
+
+        # Solve & Step Buttons Frame
+        button_frame = ttk.Frame(input_frame)
+        button_frame.pack(fill='x', pady=(0, 15))
+        ttk.Button(button_frame, text="SOLVE EQUATION", command=self.solve_root_finding,
+                   style='InlineSolve.TButton').pack(side=tk.LEFT, fill='x', expand=True, padx=(0, 5))
+        self.next_step_button = ttk.Button(button_frame, text="Next Step", command=self.next_step_root_finding,
+                                           state=tk.DISABLED)
+        self.next_step_button.pack(side=tk.LEFT, padx=(0, 5))
+        self.reset_step_button = ttk.Button(button_frame, text="Reset", command=self.reset_step_mode, state=tk.DISABLED)
+        self.reset_step_button.pack(side=tk.LEFT)
+
+        # Output Frame (Right)
+        output_frame = ttk.LabelFrame(main_frame, text="Root & Results", padding="15")
+        output_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
+        output_frame.columnconfigure(0, weight=1)
+
+        ttk.Label(output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
+        self.root_results_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, height=15, width=50,
+                                                           font=("Consolas", 11), state=tk.DISABLED, bg="#F0F8FF",
+                                                           fg="#004D99", relief=tk.FLAT)
+        self.root_results_text.pack(fill='both', expand=True)
+
+        ttk.Label(output_frame, text="Iteration Details:", style='Title.TLabel').pack(fill='x', pady=(15, 5))
+        self.root_log_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, height=8, width=50,
+                                                       font=("Consolas", 9), state=tk.DISABLED, bg="#F5F5F5",
+                                                       fg="#555555", relief=tk.FLAT)
+        self.root_log_text.pack(fill='both', expand=True)
 
     def clear_params_frame(self):
-        """Removes all widgets from the parameters frame to prepare for dynamic content."""
+        """Clear Phase 1 parameters frame"""
         for widget in self.params_frame.winfo_children():
             widget.destroy()
 
+    def clear_root_params_frame(self):
+        """Clear Phase 2 parameters frame"""
+        for widget in self.root_params_frame.winfo_children():
+            widget.destroy()
+
     def generate_matrix_input(self):
-        """
-        Dynamically generates N x (N+1) Entry widgets for matrix input based on N.
-        This enforces Specification 1c (N variables = N equations).
-        """
+        """Generate N×(N+1) matrix input grid"""
         try:
             N = int(self.n_var.get())
             if N <= 0:
-                messagebox.showwarning("Input Warning", "N must be between 1 and 10 for a usable layout.")
-                self.n_var.set("3")  # Reset to default if out of range
+                messagebox.showwarning("Input Warning", "N must be between 1 and 10")
+                self.n_var.set("3")
                 N = 3
         except ValueError:
-            messagebox.showerror("Input Error", "N must be an integer.")
+            messagebox.showerror("Input Error", "N must be an integer")
             self.n_var.set("3")
             return
 
-        # Clear existing entries/widgets in the container
         for widget in self.matrix_input_container.winfo_children():
             widget.destroy()
 
         self.matrix_entry_widgets = []
 
-        # Create Header Row (X1, X2, ..., | B)
         for j in range(N):
             ttk.Label(self.matrix_input_container, text=f"X{j + 1}", font=("Arial", 10, "bold"),
                       foreground="#2980B9").grid(row=0, column=j, padx=4, pady=4)
         ttk.Label(self.matrix_input_container, text=" | B", font=("Arial", 10, "bold"), foreground="#E74C3C").grid(
             row=0, column=N, padx=8, pady=4)
 
-        # Create N rows and N+1 columns of Entry fields
         for i in range(N):
             row_entries = []
             for j in range(N + 1):
-                entry = ttk.Entry(self.matrix_input_container, width=5, style='TEntry', font=('Consolas', 10))
-
+                entry = ttk.Entry(self.matrix_input_container, width=5, font=('Consolas', 10))
                 if j == N:
-                    # Constant vector (B) column styling
                     entry.grid(row=i + 1, column=j, padx=(10, 2), pady=2, sticky='ew')
-                    entry.config(foreground="#E74C3C")  # Red for constant vector
+                    entry.config(foreground="#E74C3C")
                 else:
-                    # Coefficient matrix (A) column styling
                     entry.grid(row=i + 1, column=j, padx=2, pady=2, sticky='ew')
-                    entry.config(foreground="#2980B9")  # Blue for coefficients
-
+                    entry.config(foreground="#2980B9")
                 row_entries.append(entry)
             self.matrix_entry_widgets.append(row_entries)
 
-        # Populate a default 3x3 system for easy testing
-        initial_data = [
-            [4.0, 1.0, -1.0, 3.0],
-            [2.0, 7.0, 1.0, 19.0],
-            [1.0, -3.0, 12.0, 31.0]
-        ]
-
-        for i in range(min(N, 3)):  # Only fill up to N=3 for the initial example
+        initial_data = [[4.0, 1.0, -1.0, 3.0], [2.0, 7.0, 1.0, 19.0], [1.0, -3.0, 12.0, 31.0]]
+        for i in range(min(N, 3)):
             for j in range(N + 1):
                 if i < len(initial_data) and j < len(initial_data[i]):
                     self.matrix_entry_widgets[i][j].delete(0, tk.END)
                     self.matrix_entry_widgets[i][j].insert(0, str(initial_data[i][j]))
 
     def update_parameters_frame(self, *args):
-        """
-        Dynamically updates the parameter input fields based on the selected method.
-        (Specification 3)
-        """
+        """Update Phase 1 parameters based on selected method"""
         self.clear_params_frame()
         method = self.method_var.get()
 
         if method == "LU Decomposition":
-            # Requires LU form selection
             ttk.Label(self.params_frame, text="LU Form:", style='TLabel').pack(fill='x', pady=(5, 5))
-            lu_options = ["Doolittle", "Crout", "Cholesky"]
-            ttk.Combobox(self.params_frame,
-                         textvariable=self.lu_form_var,
-                         values=lu_options,
-                         state="readonly",
-                         style='TCombobox',
-                         font=('Arial', 10)).pack(fill='x', pady=(0, 10))
-
+            ttk.Combobox(self.params_frame, textvariable=self.lu_form_var, values=["Doolittle", "Crout", "Cholesky"],
+                         state="readonly", font=('Arial', 10)).pack(fill='x', pady=(0, 10))
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-            # Requires initial guess and stopping condition
-
-            # Initial Guess Input
             ttk.Label(self.params_frame, text="Initial Guess (comma-separated):", style='TLabel').pack(fill='x',
                                                                                                        pady=(5, 5))
-            ttk.Entry(self.params_frame, textvariable=self.initial_guess_var, style='TEntry', font=('Arial', 10)).pack(
-                fill='x', pady=(0, 10))
+            ttk.Entry(self.params_frame, textvariable=self.initial_guess_var, font=('Arial', 10)).pack(fill='x',
+                                                                                                       pady=(0, 10))
+            ttk.Label(self.params_frame, text="Max Iterations:", style='TLabel').pack(fill='x', pady=(5, 2))
+            ttk.Entry(self.params_frame, textvariable=self.max_iter_var, font=('Arial', 10)).pack(fill='x')
+            ttk.Label(self.params_frame, text="Error Tolerance:", style='TLabel').pack(fill='x', pady=(10, 2))
+            ttk.Entry(self.params_frame, textvariable=self.error_tol_var, font=('Arial', 10)).pack(fill='x')
 
+    def update_root_parameters_frame(self, *args):
+        """Update Phase 2 parameters based on selected method"""
+        self.clear_root_params_frame()
+        method = self.root_method_var.get()
 
-            # Stopping Conditions Title
-            (ttk.Label(self.params_frame, text="Stopping Conditions:", style='Title.TLabel')
-             .pack(fill='x', pady=(10, 5)))
+        if method == "Bisection":
+            ttk.Label(self.root_params_frame, text="Interval [a, b]:", style='TLabel').pack(fill='x', pady=(5, 5))
+            a_frame = ttk.Frame(self.root_params_frame)
+            a_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(a_frame, text="a:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(a_frame, textvariable=self.interval_a_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
+            b_frame = ttk.Frame(self.root_params_frame)
+            b_frame.pack(fill='x')
+            ttk.Label(b_frame, text="b:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(b_frame, textvariable=self.interval_b_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
 
-            # --- Max Iterations ---
-            (ttk.Label(self.params_frame, text="Max Iterations:", style='TLabel')
-             .pack(fill='x', pady=(5, 2)))
+        elif method == "Fixed Point":
+            ttk.Label(self.root_params_frame, text="Initial Guess (x₀):", style='TLabel').pack(fill='x', pady=(5, 5))
+            ttk.Label(self.root_params_frame, text="Equation g(x) should be in form: x_new = g(x)", font=("Arial", 9),
+                      foreground="#7F8C8D").pack(fill='x', pady=(0, 5))
+            ttk.Entry(self.root_params_frame, textvariable=self.initial_guess_root_var, font=('Arial', 10)).pack(
+                fill='x')
 
-            (ttk.Entry(self.params_frame, textvariable=self.max_iter_var, style='TEntry', font=('Arial', 10))
-             .pack(fill='x'))
+        elif method == "False-Position":
+            """
+            placeholder_frame = ttk.Frame(self.root_params_frame)
+            placeholder_frame.pack(fill='both', expand=True, pady=10)
+            ttk.Label(placeholder_frame, text="⏳ FALSE-POSITION METHOD", style='Title.TLabel',
+                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
+            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
+                      foreground="#E74C3C").pack(fill='x', pady=5)
+            ttk.Label(placeholder_frame, text="Required Parameters:\n• Interval [a, b]\n• Same as Bisection method",
+                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
+            """
 
-            # --- Error Tolerance (%) ---
-            (ttk.Label(self.params_frame,text="Error Tolerance (%):",style='TLabel')
-             .pack(fill='x', pady=(5, 2)))
+        elif method == "Newton-Raphson":
+            """
+            placeholder_frame = ttk.Frame(self.root_params_frame)
+            placeholder_frame.pack(fill='both', expand=True, pady=10)
+            ttk.Label(placeholder_frame, text="⏳ NEWTON-RAPHSON METHOD", style='Title.TLabel',
+                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
+            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
+                      foreground="#E74C3C").pack(fill='x', pady=5)
+            ttk.Label(placeholder_frame, text="Required Parameters:\n• Initial Guess (x₀)\n• Uses numerical derivative",
+                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
+            """
 
-            (ttk.Entry(self.params_frame, textvariable=self.error_tol_var, style='TEntry', font=('Arial', 10))
-             .pack(fill='x'))
+        elif method == "Modified Newton-Raphson":
+            """
+            placeholder_frame = ttk.Frame(self.root_params_frame)
+            placeholder_frame.pack(fill='both', expand=True, pady=10)
+            ttk.Label(placeholder_frame, text="⏳ MODIFIED NEWTON-RAPHSON METHOD", style='Title.TLabel',
+                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
+            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
+                      foreground="#E74C3C").pack(fill='x', pady=5)
+            ttk.Label(placeholder_frame, text="Required Parameters:\n• Initial Guess (x₀)\n• For multiple roots",
+                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
+            """
 
-    def parse_guess_input(self, guess_str: str) -> Optional[List[float]]:
-        """Parses the comma-separated initial guess string into a list of floats."""
+        elif method == "Secant":
+            """
+            placeholder_frame = ttk.Frame(self.root_params_frame)
+            placeholder_frame.pack(fill='both', expand=True, pady=10)
+            ttk.Label(placeholder_frame, text="⏳ SECANT METHOD", style='Title.TLabel', foreground="#E74C3C").pack(
+                fill='x', pady=(10, 5))
+            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
+                      foreground="#E74C3C").pack(fill='x', pady=5)
+            ttk.Label(placeholder_frame,
+                      text="Required Parameters:\n• Two initial guesses (x₀, x₁)\n• No derivative needed",
+                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
+            """
+
+    def solve_linear_system(self):
+        """Solve Phase 1 linear system"""
         try:
-            # Split by comma, strip spaces, filter empty parts, convert to float
-            parts = [p.strip() for p in guess_str.split(',') if p.strip()]
-            return [float(p) for p in parts]
+            N = int(self.n_var.get())
         except ValueError:
-            # Returns None if any part is not a valid number
-            return None
+            messagebox.showerror("Input Error", "N must be an integer")
+            return
 
-    def get_user_params(self) -> Dict[str, Any]:
-        """Collects all dynamic parameters from the GUI based on the selected method."""
+        try:
+            precision = int(self.precision_var.get() or 5)
+            if precision <= 0 or precision > 15:
+                raise ValueError("Precision must be 1-15")
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
+            return
+
+        parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
+        if parsed_matrix is None:
+            return
+
+        A, b = parsed_matrix
         method = self.method_var.get()
         params = {}
 
         if method == "LU Decomposition":
             params["LU Form"] = self.lu_form_var.get()
-
         elif method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-            # Store raw guess string first, validate size later in solve_system
-            params["Initial Guess (Raw)"] = self.initial_guess_var.get()
-
-
-            # Validate Stopping Value format
             try:
+                guess_list = [float(x.strip()) for x in self.initial_guess_var.get().split(',')]
+                if len(guess_list) != N:
+                    raise ValueError(f"Initial guess must have {N} components")
+                params["Initial Guess"] = guess_list
                 params["max_iter_var"] = int(self.max_iter_var.get())
                 params["error_tol_var"] = float(self.error_tol_var.get())
-            except ValueError:
-                return {"error": "Stopping Value must be a number."}
-
-        return params
-
-    def update_results_display(self, text: str, log: str):
-        """Helper to safely enable, clear, update, and disable ScrolledText widgets."""
-        for widget in [self.results_text, self.log_text]:
-            widget.config(state=tk.NORMAL)
-            widget.delete(1.0, tk.END)
-
-        self.results_text.insert(tk.END, text)
-        self.log_text.insert(tk.END, log)
-
-        for widget in [self.results_text, self.log_text]:
-            widget.config(state=tk.DISABLED)
-
-    def solve_system(self):
-        """
-        Main function executed when the 'SOLVE SYSTEM' button is pressed.
-        Coordinates input validation, DTO creation, and calls the solver backend.
-        """
-        self.update_results_display("Solving...", "Processing input and creating DTO...")
-
-        # 0. Get N (Number of Variables)
-        try:
-            N = int(self.n_var.get())
-        except ValueError:
-            messagebox.showerror("Input Error", "N must be an integer.")
-            self.update_results_display("", "ERROR: N input is invalid.")
-            return
-
-        # 1. Get and Validate Precision (Specification 4)
-        try:
-            precision = int(self.precision_var.get() or 5)  # Default to 5 sig figs
-            if precision <= 0 or precision > 15:
-                raise ValueError("Precision must be a positive integer (max 15).")
-        except ValueError as e:
-            messagebox.showerror("Input Error", str(e))
-            self.update_results_display("", f"ERROR: {e}")
-            return
-
-        # 2. Get and Validate System Input (Specification 1)
-        # Note: We pass a deep copy of A and b to prevent the solver from modifying the input data
-        # Uses the parse_input method from the NumericalSolver placeholder
-        parsed_matrix = self.solver.parse_input(self.matrix_entry_widgets, N)
-
-        if parsed_matrix is None:
-            # Error handled inside parse_input via messagebox
-            self.update_results_display("", "ERROR: System input validation failed.")
-            return
-
-        A, b = parsed_matrix
-
-        # 3. Get Method Parameters (Specification 3)
-        params = self.get_user_params()
-        if "error" in params:
-            messagebox.showerror("Input Error", params["error"])
-            self.update_results_display("", f"ERROR: {params['error']}")
-            return
-
-        # 4. Final Parameter Validation (Specific to Iterative methods)
-        method = self.method_var.get()
-        if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-            raw_guess = params.pop("Initial Guess (Raw)")  # Get raw string
-            guess_list = self.parse_guess_input(raw_guess)  # Parse into float list
-
-            if guess_list is None:
-                messagebox.showerror("Input Error", "Initial Guess must be a comma-separated list of numbers.")
-                self.update_results_display("", "ERROR: Invalid initial guess format.")
+            except ValueError as e:
+                messagebox.showerror("Input Error", str(e))
                 return
 
-            if len(guess_list) != N:
-                messagebox.showerror("Input Error",
-                                     f"Initial guess must have {N} components, matching the number of variables.")
-                self.update_results_display("", "ERROR: Initial guess size mismatch.")
-                return
-
-            params["Initial Guess"] = guess_list  # Store validated list in params
-
-        # if method in ["Jacobi-Iteration", "Gauss-Seidel"]:
-
-        # --- 5. Create DTO and Call Solver ---
-        # Pass deep copies of A and b to ensure the solver works on its own version
         system_data = SystemData(copy.deepcopy(A), copy.deepcopy(b), method, precision, params)
-        self.update_results_display("Solving...", f"Dispatching to {method} Solver...")
+        results = self.solver.solve(system_data)
 
-        try:
-            # Dispatch DTO to the solver entry point
-            # Uses the solve method from the NumericalSolver placeholder
-            results = self.solver.solve(system_data)
-        except Exception as e:
-            # Catch unexpected errors during the Factory/Solver process
-            results = {
-                "success": False,
-                "error_message": f"Critical Failure during solving: {e}",
-                "execution_time": 0.0,
-            }
-
-        # --- 6. Display Results (Specifications 5, 6, 7) ---
         if results["success"]:
             sol_text = ""
-            # Format the solution based on the requested precision
             for i, val in enumerate(results["sol"]):
                 formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
                 sol_text += f"X{i + 1} = {formatted_val}\n"
-
             output_text = f"--- Solution ---\n\n{sol_text}"
-
-            # Prepare logs
-            log_params = {k: v for k, v in params.items()}
-
-            log_text = (
-                f"Method Used: {results['method_used']}\n"
-                f"Precision (Sig Figs): {results['precision']}\n"
-                f"Execution Time: {results['execution_time']:.6f} seconds\n"
-            )
-
-            if results.get("iterations") != "N/A":
-                log_text += f"Iterations Taken: {results.get('iterations', 'N/A')}\n"
-
-            # Display parameters used
-            log_text += "\nParameters Used:\n"
-            log_text += json.dumps(log_params, indent=2)
-
+            log_text = f"Method: {results['method_used']}\nPrecision: {results['precision']} sig figs\nExecution Time: {results['execution_time']:.6f}s\n"
         else:
-            # Display error message for no solution, infinite solutions, or unexpected error (Specification 6)
-            output_text = (
-                f"--- Result ---\n\n"
-                f"SYSTEM ERROR:\n"
-                f"{results.get('error_message', 'The system could not be solved.')}"
-            )
-            log_text = (
-                f"Method Used: {method}\n"
-                f"Execution Time: {results.get('execution_time', 0.0):.6f} seconds\n"
-                f"Input Data Size: {N}x{N}\n"
-            )
+            output_text = f"ERROR:\n{results.get('error_message', 'Unknown error')}"
+            log_text = f"Execution Time: {results.get('execution_time', 0):.6f}s\n"
 
-        self.update_results_display(output_text, log_text)
+        self.update_results_display(output_text, log_text, phase=1)
 
+    def solve_root_finding(self):
+        """Solve Phase 2 root finding problem"""
+        equation = self.equation_var.get().strip()
+        if not equation:
+            messagebox.showerror("Input Error", "Please enter an equation")
+            return
+
+        try:
+            precision = int(self.root_precision_var.get() or 5)
+            eps = float(self.epsilon_var.get() or 0.00001)
+            max_iter = int(self.max_iter_root_var.get() or 50)
+            if precision <= 0 or precision > 15:
+                raise ValueError("Precision must be 1-15")
+        except ValueError as e:
+            messagebox.showerror("Input Error", f"Invalid parameter: {e}")
+            return
+
+        method = self.root_method_var.get()
+        params = {
+            "epsilon": eps,
+            "max_iterations": max_iter
+        }
+
+        # Get method-specific parameters
+        try:
+            if method == "Bisection":
+                params["interval_a"] = float(self.interval_a_var.get())
+                params["interval_b"] = float(self.interval_b_var.get())
+            elif method == "Fixed Point":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+
+            # REST OF TEAM'S METHODS
+
+            elif method in ["False-Position", "Newton-Raphson", "Modified Newton-Raphson", "Secant"]:
+                messagebox.showerror("Not Implemented", f"{method} is not yet implemented")
+                return
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
+            return
+
+        # Create DTO and solve
+        start_time = time.time()
+        try:
+            root_data = RootFinderData(equation, method, precision, params)
+            solver = RootFinderFactory.get_solver(root_data)
+            results = solver.solve()
+            self.execution_time = time.time() - start_time
+
+            # Store for step mode
+            self.all_steps = results.get("steps", [])
+            self.current_root = results["root"]
+            self.current_iterations = results["iterations"]
+            self.current_rel_error = results["rel_error"]
+            self.current_correct_sigs = results["correct_sig_figs"]
+            self.current_method = method
+            self.current_equation = equation
+
+            # Check if single step mode is enabled
+            if self.single_step_var.get():
+                self.step_mode_active = True
+                self.current_step_index = 0
+                self.next_step_button.config(state=tk.NORMAL)
+                self.reset_step_button.config(state=tk.NORMAL)
+                self.display_step_mode()
+            else:
+                # Display full solution
+                self.display_full_solution()
+
+        except Exception as e:
+            output_text = f"ERROR:\n{str(e)}"
+            log_text = f"Execution Time: {time.time() - start_time:.6f}s"
+            self.update_results_display(output_text, log_text, phase=2)
+
+    def display_full_solution(self):
+        """Display complete solution (non-step mode)"""
+        output_text = f"--- Root Finding Results ---\n\n"
+        output_text += f"Method: {self.current_method}\n"
+        output_text += f"Equation: {self.current_equation}\n\n"
+        output_text += f"Approximate Root: {self.current_root}\n"
+        output_text += f"Iterations: {self.current_iterations}\n"
+        output_text += f"Relative Error: {self.current_rel_error}\n"
+        output_text += f"Correct Sig Figs: {self.current_correct_sigs}\n"
+        output_text += f"Execution Time: {self.execution_time:.6f}s\n"
+
+        steps_text = "All Iterations:\n\n"
+        for step in self.all_steps:
+            steps_text += str(step) + "\n"
+
+        self.update_results_display(output_text, steps_text, phase=2)
+
+    def display_step_mode(self):
+        """Display current step in step-by-step mode"""
+        if self.current_step_index >= len(self.all_steps):
+            self.show_final_summary()
+            return
+
+        current_step = self.all_steps[self.current_step_index]
+        progress = f"Step {self.current_step_index + 1} of {len(self.all_steps)}"
+
+        output_text = f"--- SINGLE STEP MODE ---\n\n"
+        output_text += f"{progress}\n"
+        output_text += f"Method: {self.current_method}\n"
+        output_text += f"Equation: {self.current_equation}\n\n"
+        output_text += "Current Iteration Data:\n"
+        output_text += "-" * 50 + "\n"
+
+        for key, value in current_step.items():
+            output_text += f"{key:.<30} {value}\n"
+
+        output_text += "-" * 50 + "\n\n"
+        output_text += "Press 'Next Step' to continue or 'Reset' to start over"
+
+        steps_text = f"Completed: {self.current_step_index + 1}/{len(self.all_steps)} steps\n\n"
+        steps_text += "Iteration History:\n"
+        for i, step in enumerate(self.all_steps[:self.current_step_index + 1]):
+            steps_text += f"Step {i + 1}: {step}\n"
+
+        self.update_results_display(output_text, steps_text, phase=2)
+
+    def next_step_root_finding(self):
+        """Move to next step in step-by-step mode"""
+        if self.step_mode_active:
+            self.current_step_index += 1
+            self.display_step_mode()
+
+    def reset_step_mode(self):
+        """Reset step mode and go back to beginning"""
+        self.step_mode_active = False
+        self.current_step_index = 0
+        self.next_step_button.config(state=tk.DISABLED)
+        self.reset_step_button.config(state=tk.DISABLED)
+        self.display_full_solution()
+
+    def show_final_summary(self):
+        """Show final summary after all steps completed"""
+        output_text = f"--- ROOT FINDING COMPLETE ---\n\n"
+        output_text += f"Method: {self.current_method}\n"
+        output_text += f"Equation: {self.current_equation}\n\n"
+        output_text += f"✓ Approximate Root: {self.current_root}\n"
+        output_text += f"✓ Total Iterations: {self.current_iterations}\n"
+        output_text += f"✓ Relative Error: {self.current_rel_error}\n"
+        output_text += f"✓ Correct Sig Figs: {self.current_correct_sigs}\n"
+        output_text += f"✓ Execution Time: {self.execution_time:.6f}s\n\n"
+        output_text += "All steps completed. Press 'Reset' to start over."
+
+        steps_text = "Final Iteration Summary:\n\n"
+        for i, step in enumerate(self.all_steps):
+            steps_text += f"Step {i + 1}: {step}\n"
+
+        self.update_results_display(output_text, steps_text, phase=2)
+        self.next_step_button.config(state=tk.DISABLED)
+
+    def update_results_display(self, text: str, log: str, phase: int = 1):
+        """Update results display for Phase 1 or Phase 2"""
+        if phase == 1:
+            for widget in [self.results_text, self.log_text]:
+                widget.config(state=tk.NORMAL)
+                widget.delete(1.0, tk.END)
+            self.results_text.insert(tk.END, text)
+            self.log_text.insert(tk.END, log)
+            for widget in [self.results_text, self.log_text]:
+                widget.config(state=tk.DISABLED)
+        else:
+            for widget in [self.root_results_text, self.root_log_text]:
+                widget.config(state=tk.NORMAL)
+                widget.delete(1.0, tk.END)
+            self.root_results_text.insert(tk.END, text)
+            self.root_log_text.insert(tk.END, log)
+            for widget in [self.root_results_text, self.root_log_text]:
+                widget.config(state=tk.DISABLED)
+
+
+# ============================================================================
+# APPLICATION ENTRY POINT
+# ============================================================================
 
 if __name__ == '__main__':
-    # Debug print to confirm script is running
-    print("Starting Numerical Solver GUI application...")
-    # Set up the main window
+    print("Starting Numerical Solver - Phase 1 & 2...")
     root = tk.Tk()
     app = NumericalSolverGUI(root)
-    # Start the Tkinter event loop, which handles all GUI interactions
     root.mainloop()
