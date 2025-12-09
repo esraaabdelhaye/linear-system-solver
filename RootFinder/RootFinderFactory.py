@@ -3,7 +3,7 @@ from .RootFinderData import RootFinderData
 from .Bisection import Bisection
 from .FixedPoint import FixedPoint
 # from .FalsePosition import FalsePosition
-# from .NewtonRaphson import NewtonRaphson
+from .NewtonRaphson import NewtonRaphson
 # from .ModifiedNewtonRaphson import ModifiedNewtonRaphson
 # from .Secant import Secant
 
@@ -15,7 +15,7 @@ class RootFinderFactory:
         "Bisection": Bisection,
         # "False-Position": FalsePosition,
         "Fixed Point": FixedPoint,
-        # "Newton-Raphson": NewtonRaphson,
+        "Newton-Raphson": NewtonRaphson,
         # "Modified Newton-Raphson": ModifiedNewtonRaphson,
         # "Secant": Secant
     }

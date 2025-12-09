@@ -1,6 +1,7 @@
 import math
 from typing import Dict, Any
 from abc import ABC, abstractmethod
+import sympy as sp
 
 
 class AbstractRootFinder(ABC):
@@ -33,6 +34,15 @@ class AbstractRootFinder(ABC):
             return eval(safe_expr, {"x": x, "math": math, "__builtins__": {}})
         except Exception as e:
             raise ValueError(f"Error evaluating equation '{self.equation}' at x={x}: {e}")
+
+
+    def evaluate_first_derivative(self, x: float) -> float:
+        x_sym = sp.Symbol('x')
+        expr = sp.sympify(self.equation)
+
+        derivative = sp.diff(expr, x_sym)
+        return float(derivative.subs(x_sym, x))
+
 
     def numerical_derivative(self, x: float, h: float = 1e-7) -> float:
         try:
