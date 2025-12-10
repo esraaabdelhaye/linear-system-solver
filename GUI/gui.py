@@ -558,16 +558,9 @@ class NumericalSolverGUI:
             if method == "Bisection":
                 params["interval_a"] = float(self.interval_a_var.get())
                 params["interval_b"] = float(self.interval_b_var.get())
+
             elif method == "Fixed Point":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
-            elif method == "Secant":
-                params["initial_guess"] = float(self.initial_guess_root_var.get())
-                params["second_guess"] = float(self.second_guess_root_var.get())
-            elif method == "Modidfied Secant":
-                params["initial_guess"] = float(self.initial_guess_root_var.get())
-                params["delta"] = float(self.delta_var.get())
-
-            # REST OF TEAM'S METHODS
 
             elif method == "False-Position":
                 params["interval_a"] = float(self.interval_a_var.get())
@@ -579,6 +572,15 @@ class NumericalSolverGUI:
             elif method in ["Modified Newton-Raphson"]:
                 messagebox.showerror("Not Implemented", f"{method} is not yet implemented")
                 return
+
+            elif method == "Secant":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+                params["second_guess"] = float(self.second_guess_root_var.get())
+
+            elif method == "Modidfied Secant":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+                params["delta"] = float(self.delta_var.get())
+
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
             return
