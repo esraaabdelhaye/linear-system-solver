@@ -1,7 +1,12 @@
 from typing import Dict, Any
+
+from .ModifiedSecant import ModifiedSecant
 from .RootFinderData import RootFinderData
 from .Bisection import Bisection
 from .FixedPoint import FixedPoint
+from .Secant import Secant
+
+
 # from .FalsePosition import FalsePosition
 # from .NewtonRaphson import NewtonRaphson
 # from .ModifiedNewtonRaphson import ModifiedNewtonRaphson
@@ -17,7 +22,8 @@ class RootFinderFactory:
         "Fixed Point": FixedPoint,
         # "Newton-Raphson": NewtonRaphson,
         # "Modified Newton-Raphson": ModifiedNewtonRaphson,
-        # "Secant": Secant
+        "Secant": Secant,
+        "Modified Secant": ModifiedSecant
     }
 
     @staticmethod
