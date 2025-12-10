@@ -424,28 +424,20 @@ class NumericalSolverGUI:
                 fill='x')
 
         elif method == "False-Position":
-            """
-            placeholder_frame = ttk.Frame(self.root_params_frame)
-            placeholder_frame.pack(fill='both', expand=True, pady=10)
-            ttk.Label(placeholder_frame, text="⏳ FALSE-POSITION METHOD", style='Title.TLabel',
-                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
-            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
-                      foreground="#E74C3C").pack(fill='x', pady=5)
-            ttk.Label(placeholder_frame, text="Required Parameters:\n• Interval [a, b]\n• Same as Bisection method",
-                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
-            """
+            ttk.Label(self.root_params_frame, text="Interval [a, b]:", style='TLabel').pack(fill='x', pady=(5, 5))
+            a_frame = ttk.Frame(self.root_params_frame)
+            a_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(a_frame, text="a:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(a_frame, textvariable=self.interval_a_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
+            b_frame = ttk.Frame(self.root_params_frame)
+            b_frame.pack(fill='x')
+            ttk.Label(b_frame, text="b:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(b_frame, textvariable=self.interval_b_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
 
         elif method == "Newton-Raphson":
-            """
-            placeholder_frame = ttk.Frame(self.root_params_frame)
-            placeholder_frame.pack(fill='both', expand=True, pady=10)
-            ttk.Label(placeholder_frame, text="⏳ NEWTON-RAPHSON METHOD", style='Title.TLabel',
-                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
-            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
-                      foreground="#E74C3C").pack(fill='x', pady=5)
-            ttk.Label(placeholder_frame, text="Required Parameters:\n• Initial Guess (x₀)\n• Uses numerical derivative",
-                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
-            """
+            ttk.Label(self.root_params_frame, text="Initial Guess (x₀):", style='TLabel').pack(fill='x', pady=(5, 5))
+            ttk.Entry(self.root_params_frame, textvariable=self.initial_guess_root_var, font=('Arial', 10)).pack(
+                fill='x')
 
         elif method == "Modified Newton-Raphson":
             """
@@ -577,7 +569,14 @@ class NumericalSolverGUI:
 
             # REST OF TEAM'S METHODS
 
-            elif method in ["False-Position", "Newton-Raphson", "Modified Newton-Raphson"]:
+            elif method == "False-Position":
+                params["interval_a"] = float(self.interval_a_var.get())
+                params["interval_b"] = float(self.interval_b_var.get())
+
+            elif method == "Newton-Raphson":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+
+            elif method in ["Modified Newton-Raphson"]:
                 messagebox.showerror("Not Implemented", f"{method} is not yet implemented")
                 return
         except ValueError as e:
