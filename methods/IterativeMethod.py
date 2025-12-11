@@ -4,90 +4,139 @@ from methods.AbstractSolver import AbstractSolver
 from typing import Dict, Any
 
 
-# The IterativeMethod class inherits from AbstractSolver
-# iterative techniques (Jacobi and Gauss-Seidel) to solve a system of linear equations A*x = b.
 class IterativeMethod(AbstractSolver):
-    # Constructor: Initializes the solver with system data and iteration parameters.
+    """
+    Implements iterative techniques (Jacobi and Gauss-Seidel) to solve a system of linear equations A*x = b.
+    Supports step-by-step tracking for single-step mode (Bonus Feature #1)
+
+    Constructor: Initializes the solver with system data and iteration parameters.
+    """
+
     def __init__(self, data: SystemData):
-        # Call the constructor of the base class (AbstractSolver).
+        """
+        Initialize iterative solver.
+
+        Args:
+            data: SystemData object with matrix, initial guess, and stopping criteria
+        """
+        # Call the constructor of the base class (AbstractSolver)
         super().__init__(data)
 
-        # Instance variables (params) are extracted from the SystemData object.
-        # Initial guess vector (x^(0)).
-        self.X = np.array(data.params["Initial Guess"], dtype=float)
-        # Maximum number of iterations allowed.
-        self.iterations = data.params["max_iter_var"]
-        # Error tolerance (stopping criterion).
-        self.tol = data.params["error_tol_var"]
-        # Boolean flag: True for Jacobi method, False for Gauss-Seidel method.
-        self.jacobi = data.params["Jacobi"]
-        # Note: self.A, self.b, and self.round_sig_fig are inherited from AbstractSolver.
+        # Instance variables extracted from the SystemData object
+        self.X = np.array(data.params["Initial Guess"], dtype=float)  # x^(0)
+        self.iterations = data.params["max_iter_var"]  # Max iterations
+        self.tol = data.params["error_tol_var"]  # Error tolerance
+        self.jacobi = data.params["Jacobi"]  # True for Jacobi, False for Gauss-Seidel
 
-    # Solves the system of linear equations A*x = b using either Jacobi or Gauss-Seidel.
     def solve(self) -> Dict[str, Any]:
-        # Number of equations/unknowns.
-        n = len(self.b)
+        """
+        Solves the system A*x = b using either Jacobi or Gauss-Seidel method.
 
-        # Main iteration loop.
+        Returns:
+            Dictionary with success status, solution, iterations, and steps
+        """
+        method_name = "Jacobi" if self.jacobi else "Gauss-Seidel"
+        print(f"Solving: {method_name} Iteration")
+
+        n = len(self.b)
+        initial_guess = self.X.copy()
+
+        # Record initial state for step mode
+        self.add_step({
+            "operation": "Initial Guess",
+            "description": f"Starting with x^(0)",
+            "iteration": 0,
+            "x_values": initial_guess.copy().tolist(),
+            "error": 0
+        })
+
+        # Main iteration loop
         for it in range(self.iterations):
-            # Store the vector from the current iteration (x^(k)) before computing the next one.
+            # Store the vector from current iteration (x^(k)) before computing next one
             old_x = self.X.copy()
 
-            # Loop over each equation/unknown (i = 0 to n-1).
+            # Loop over each equation/unknown
             for i in range(n):
-                # The iterative formula is derived from: A[i, i] * X[i] = b[i] - sum(A[i, j] * X[j]) for j != i
-                # X[i]^(k+1) = (1 / A[i, i]) * (b[i] - sum_j!=i (A[i, j] * X[j]))
+                """
+                Iterative formula derived from: A[i, i] * X[i] = b[i] - sum(A[i, j] * X[j]) for j != i
+                X[i]^(k+1) = (1 / A[i, i]) * (b[i] - sum_j!=i (A[i, j] * X[j]))
+                """
 
                 if self.jacobi:
                     # --- Jacobi Method Implementation ---
-                    # Jacobi uses ALL values from the previous iteration (old_x) to compute the new X[i].
-
-                    # sum1: sum of A[i, j] * old_x[j] for j < i (lower triangle part).
+                    # Uses ALL values from the previous iteration (old_x)
                     sum1 = self.dot_with_rounding(self.A[i, :i], old_x[:i], self.round_sig_fig)
-                    # sum2: sum of A[i, j] * old_x[j] for j > i (upper triangle part).
                     sum2 = self.dot_with_rounding(self.A[i, i + 1:], old_x[i + 1:], self.round_sig_fig)
                 else:
                     # --- Gauss-Seidel Method Implementation ---
-                    # Gauss-Seidel uses the NEWLY computed values (self.X) for j < i
-                    # and the OLD values (old_x) for j > i.
-
-                    # sum1: sum of A[i, j] * self.X[j] for j < i.
-                    # These x values (self.X[:i]) are the NEW updated ones
-                    # because we’ve already computed them earlier in this iteration (for indices < i).
+                    # Uses NEWLY computed values (self.X) for j < i
+                    # and OLD values (old_x) for j > i
                     sum1 = self.dot_with_rounding(self.A[i, :i], self.X[:i], self.round_sig_fig)
-
-                    # sum2: sum of A[i, j] * old_x[j] for j > i.
-                    # These x values (old_x[i + 1:]) are the OLD ones
-                    # because we haven’t computed their new value in this iteration yet.
                     sum2 = self.dot_with_rounding(self.A[i, i + 1:], old_x[i + 1:], self.round_sig_fig)
 
-                # Compute the new value for X[i] using the equation derived from A*x=b.
-                # X[i] = (b[i] - sum_j!=i (A[i, j] * X[j])) / A[i, i]
+                # Compute new value for X[i]
                 self.X[i] = self.round_sig_fig((self.b[i] - sum1 - sum2) / self.A[i, i])
 
-            # --- Convergence Check ---
-            # Calculate the maximum absolute relative error between the new (self.X) and old (old_x) vectors.
-            # error = max(| (X[i]^(k+1) - X[i]^(k)) / X[i]^(k+1) |)
-            # A small epsilon (1e-12) is added to the denominator to protect against division by zero
-            # (though mathematically X[i]^(k+1) should not be zero if the system is well-behaved).
+            # Calculate convergence error
             error = np.max(np.abs((self.X - old_x) / (self.X + 1e-12)))
 
-            # Check if the calculated error is less than the user-defined tolerance.
+            # Record iteration step for step mode
+            self.add_step({
+                "operation": f"Iteration {it + 1}",
+                "description": f"{method_name} iteration update",
+                "iteration": it + 1,
+                "x_values": self.X.copy().tolist(),
+                "previous_x": old_x.copy().tolist(),
+                "error": float(error),
+                "converged": error < self.tol
+            })
+
+            # Check for convergence
             if error < self.tol:
-                # If converged, return the successful result, the solution vector, and the number of iterations.
-                return {"success": True, "sol": self.X,
-                        "iterations": it + 1}  # it is 0-indexed, so we add 1 for the count.
+                self.add_step({
+                    "operation": "Convergence Achieved",
+                    "description": f"Error {error:.6e} < Tolerance {self.tol:.6e}",
+                    "final_iteration": it + 1,
+                    "final_solution": self.X.copy().tolist(),
+                    "final_error": float(error)
+                })
 
-        # If the loop finishes without meeting the tolerance, raise an error.
-        raise ValueError("Couldn't reach that tolerance in the given number of iterations")
+                return {
+                    "success": True,
+                    "sol": self.X,
+                    "iterations": it + 1,
+                    "error": error,
+                    "steps": self.steps
+                }
 
-    # Helper method to calculate the dot product of a row and a vector with intermediate rounding.
-    # This is used to simulate limited floating-point precision.
+        # Failed to converge
+        self.add_step({
+            "operation": "Convergence Failed",
+            "description": f"Did not converge after {self.iterations} iterations",
+            "final_iteration": self.iterations,
+            "final_error": error,
+            "last_solution": self.X.copy().tolist()
+        })
+
+        raise ValueError(f"Couldn't reach tolerance {self.tol} in {self.iterations} iterations. Last error: {error}")
+
     def dot_with_rounding(self, row, vec, adjust):
+        """
+        Helper method to calculate dot product with intermediate rounding.
+        This simulates limited floating-point precision.
+
+        Args:
+            row: Row vector
+            vec: Column vector
+            adjust: Rounding function
+
+        Returns:
+            Dot product result with rounding applied
+        """
         total = 0
-        # Iterate over the elements of the row and vector simultaneously.
+        # Iterate over the elements simultaneously
         for a, x in zip(row, vec):
-            # Multiply the elements and apply the rounding function (adjust), then add to total.
+            # Multiply elements and apply rounding, then add to total
             total += adjust(a * x)
-        # Apply the rounding function to the final sum before returning.
+        # Apply rounding to the final sum
         return adjust(total)
