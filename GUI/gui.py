@@ -22,6 +22,9 @@ import time  # For timing execution
 import re
 import math
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # Phase 1 Imports
 from NumericalSolver import NumericalSolver  # Linear system solver coordinator
 from System.SystemData import SystemData  # Phase 1 DTO
@@ -123,7 +126,8 @@ class NumericalSolverGUI:
         self.interval_a_var = tk.StringVar(master, value="-5")
         self.interval_b_var = tk.StringVar(master, value="5")
         self.initial_guess_root_var = tk.StringVar(master, value="1")
-        self.second_guess_var = tk.StringVar(master, value="2")
+        self.second_guess_root_var = tk.StringVar(master, value="2")
+        self.delta_var =tk.StringVar(master, value="0.01")
         self.single_step_var = tk.BooleanVar(value=False)
 
         # Matrix input widgets storage
@@ -372,8 +376,8 @@ class NumericalSolverGUI:
 
         # Method Selection
         ttk.Label(input_frame, text="Root Finding Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
-        self.root_methods = ["Bisection", "False-Position", "Fixed Point", "Newton-Raphson", "Modified Newton-Raphson",
-                             "Secant"]
+        self.root_methods = ["Bisection", "False-Position", "Fixed Point", "Newton-Raphson", "Modified Newton-Raphson (Known m)",
+                              "Modified Newton-Raphson (Unknown m)", "Secant", "Modified Secant"]
         self.root_method_dropdown = ttk.Combobox(input_frame, textvariable=self.root_method_var,
                                                  values=self.root_methods, state="readonly", font=('Arial', 10))
         self.root_method_dropdown.pack(fill='x', pady=(0, 15))
@@ -578,41 +582,48 @@ class NumericalSolverGUI:
             ttk.Entry(b_frame, textvariable=self.interval_b_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
 
         elif method == "Newton-Raphson":
-            """
-            placeholder_frame = ttk.Frame(self.root_params_frame)
-            placeholder_frame.pack(fill='both', expand=True, pady=10)
-            ttk.Label(placeholder_frame, text="⏳ NEWTON-RAPHSON METHOD", style='Title.TLabel',
-                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
-            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
-                      foreground="#E74C3C").pack(fill='x', pady=5)
-            ttk.Label(placeholder_frame, text="Required Parameters:\n• Initial Guess (x₀)\n• Uses numerical derivative",
-                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
-            """
+            ttk.Label(self.root_params_frame, text="Initial Guess (x₀):", style='TLabel').pack(fill='x', pady=(5, 5))
+            ttk.Entry(self.root_params_frame, textvariable=self.initial_guess_root_var, font=('Arial', 10)).pack(
+                fill='x')
 
-        elif method == "Modified Newton-Raphson":
-            """
-            placeholder_frame = ttk.Frame(self.root_params_frame)
-            placeholder_frame.pack(fill='both', expand=True, pady=10)
-            ttk.Label(placeholder_frame, text="⏳ MODIFIED NEWTON-RAPHSON METHOD", style='Title.TLabel',
-                      foreground="#E74C3C").pack(fill='x', pady=(10, 5))
-            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
-                      foreground="#E74C3C").pack(fill='x', pady=5)
-            ttk.Label(placeholder_frame, text="Required Parameters:\n• Initial Guess (x₀)\n• For multiple roots",
-                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
-            """
+        elif method == "Modified Newton-Raphson (Known m)":
+            ttk.Label(self.root_params_frame, text="Initial Guess (x₀):", style='TLabel').pack(fill='x', pady=(5, 5))
+            ttk.Entry(self.root_params_frame, textvariable=self.initial_guess_root_var, font=('Arial', 10)).pack(fill='x')
+
+            ttk.Label(self.root_params_frame, text="Multiplicity (m):", style='TLabel').pack(fill='x', pady=(5, 5))
+            self.m_var = tk.StringVar(self.master, value="1")
+            ttk.Entry(self.root_params_frame, textvariable=self.m_var, font=('Arial', 10)).pack(fill='x')
+
+
+        elif method == "Modified Newton-Raphson (Unknown m)":
+            ttk.Label(self.root_params_frame, text="Initial Guess (x₀):", style='TLabel').pack(fill='x', pady=(5, 5))
+            ttk.Entry(self.root_params_frame, textvariable=self.initial_guess_root_var, font=('Arial', 10)).pack(fill='x')
+
 
         elif method == "Secant":
-            """
-            placeholder_frame = ttk.Frame(self.root_params_frame)
-            placeholder_frame.pack(fill='both', expand=True, pady=10)
-            ttk.Label(placeholder_frame, text="⏳ SECANT METHOD", style='Title.TLabel', foreground="#E74C3C").pack(
-                fill='x', pady=(10, 5))
-            ttk.Label(placeholder_frame, text="Status: Teammate Implementation Pending", font=("Arial", 10, "bold"),
-                      foreground="#E74C3C").pack(fill='x', pady=5)
-            ttk.Label(placeholder_frame,
-                      text="Required Parameters:\n• Two initial guesses (x₀, x₁)\n• No derivative needed",
-                      font=("Arial", 9), foreground="#7F8C8D", justify=tk.LEFT).pack(fill='x', pady=5)
-            """
+            initial_guess_frame = ttk.Frame(self.root_params_frame)
+            initial_guess_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(initial_guess_frame, text="x₋₁:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(initial_guess_frame, textvariable=self.initial_guess_root_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
+
+            second_guess_frame = ttk.Frame(self.root_params_frame)
+            second_guess_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(second_guess_frame, text="x₀  :").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(second_guess_frame, textvariable=self.second_guess_root_var, width=10, font=('Arial', 10)).pack(
+                side=tk.LEFT)
+
+        elif method == "Modified Secant":
+            initial_guess_frame = ttk.Frame(self.root_params_frame)
+            initial_guess_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(initial_guess_frame, text="x₀:").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(initial_guess_frame, textvariable=self.initial_guess_root_var, width=10, font=('Arial', 10)).pack(
+                side=tk.LEFT)
+
+            delta_frame = ttk.Frame(self.root_params_frame)
+            delta_frame.pack(fill='x', pady=(0, 5))
+            ttk.Label(delta_frame, text="ẟ  :").pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Entry(delta_frame, textvariable=self.delta_var, width=10, font=('Arial', 10)).pack(
+                side=tk.LEFT)
 
     def solve_linear_system(self):
         """Solve Phase 1 linear system"""
@@ -706,9 +717,29 @@ class NumericalSolverGUI:
                 params["interval_a"] = float(self.interval_a_var.get())
                 params["interval_b"] = float(self.interval_b_var.get())
 
-            elif method in ["Newton-Raphson", "Modified Newton-Raphson", "Secant"]:
-                messagebox.showerror("Not Implemented", f"{method} is not yet implemented")
-                return
+            elif method == "Newton-Raphson":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+
+            elif method == "Modified Newton-Raphson (Known m)":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+                try:
+                    params["multiplicity"] = float(self.m_var.get())
+                except Exception as e:
+                    messagebox.showerror("Input Error", "Please enter a valid multiplicity 'm'")
+                    return
+
+            elif method == "Modified Newton-Raphson (Unknown m)":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+
+
+            elif method == "Secant":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+                params["second_guess"] = float(self.second_guess_root_var.get())
+
+            elif method == "Modidfied Secant":
+                params["initial_guess"] = float(self.initial_guess_root_var.get())
+                params["delta"] = float(self.delta_var.get())
+
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
             return

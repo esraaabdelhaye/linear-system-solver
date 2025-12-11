@@ -9,19 +9,28 @@ from methods.AbstractSolver import AbstractSolver
 
 class NumericalSolver:
     """
-    The coordinator class: handles input parsing, DTO creation, and dispatching
-    the solving task to the appropriate solver via the Factory.
+    Coordinator class responsible for:
+      - Parsing user input from the GUI
+      - Creating the SystemData DTO
+      - Dispatching the solve request to the correct solver via the Factory
+
+    This keeps GUI code clean and maintains separation of concerns.
     """
 
     def parse_input(self, entry_widgets: List[List[tk.Entry]], N: int) -> Optional[
         Tuple[List[List[float]], List[float]]]:
         """
         Reads numerical data from the Tkinter Entry grid into the augmented matrix [A|b].
-        (Specification 1b: Bullet-proof input validation)
+        Returns:
+            (A, b) if input is valid, otherwise None.
+
+        Note:
+        - Empty cells are treated as 0.0
         """
         A = []
         b = []
 
+        # Basic validation: N must be positive
         if N == 0:
             messagebox.showerror("Input Error", "Number of variables (N) must be > 0.")
             return None
@@ -32,7 +41,7 @@ class NumericalSolver:
                 # Iterate through columns for coefficients A[i][j]
                 for j in range(N):
                     value = entry_widgets[i][j].get().strip()
-                    # Convert to float. Empty input is treated as 0.0 (Specification 1d)
+                    # Convert to float. Empty input is treated as 0.0
                     row_a.append(float(value) if value else 0.0)
 
                     # Constant b[i] (last column)
@@ -42,28 +51,32 @@ class NumericalSolver:
                 A.append(row_a)
                 b.append(row_b)
 
+        # When conversion to float fails
         except ValueError:
             messagebox.showerror("Input Error",
                                  "All coefficients and constants must be valid numbers (or left blank for 0).")
             return None
 
-        # The grid structure guarantees N variables = N equations (Specification 1c)
+        # The grid structure guarantees N variables = N equations
         return A, b
 
     def solve(self, data: SystemData) -> Dict[str, Any]:
-        print("solve from Numberical Solver")
+        # print("solve from Numberical Solver")
         """
         Dispatches the solving request to the correct solver implementation.
         """
+        #Start timing
         start_time = time.time()
 
         try:
 
             # Factory provides the specific solver instance
             solver = SolverFactory.get_solver(data)
+            # Perform the computation
             results = solver.solve()
 
-            print("results: ", results)
+            # print("results: ", results)
+
             # Add metadata back to results for GUI display
             results["method_used"] = data.method
             results["precision"] = data.precision
@@ -72,7 +85,7 @@ class NumericalSolver:
             return results
 
         except ValueError as e:
-            # Handle solver-specific errors (e.g., convergence failure, singularity)
+            # Handle solver-specific errors (for example: convergence failure, singularity)
             return {
                 "success": False,
                 "error_message": str(e),
