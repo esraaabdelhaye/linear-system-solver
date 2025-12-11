@@ -19,12 +19,23 @@ from typing import List  # Type hints
 import copy  # For deep copying matrices
 import time  # For timing execution
 
+import re
+import math
+
 # Phase 1 Imports
 from NumericalSolver import NumericalSolver  # Linear system solver coordinator
 from System.SystemData import SystemData  # Phase 1 DTO
 
 # Phase 2 Imports
 from RootFinder import RootFinderData, RootFinderFactory
+
+# Plotting Imports
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import numpy as np
 
 
 # ============================================================================
@@ -240,12 +251,98 @@ class NumericalSolverGUI:
                                                   state=tk.DISABLED, bg="#F5F5F5", fg="#555555", relief=tk.FLAT)
         self.log_text.pack(fill='both', expand=True)
 
+
+    # Equation input validation
+    def validate_equation(self, equation: str) -> tuple[bool, str]:
+        """Validate equation input for root finding"""
+        if not equation or equation.strip() == "":
+            return False, "Equation cannot be empty"
+
+        equation = equation.strip()
+
+        # Check for allowed characters and functions
+        # Allowed: x, numbers, operators, math functions, parentheses
+        allowed_pattern = r'^[x0-9\+\-\*/\.\(\)\s\*\*eEsincoxtaqrlgbfhp]+$'
+        if not re.match(allowed_pattern, equation):
+            return False, "Equation contains invalid characters. Use only: x, numbers, +, -, *, /, **, (), and math functions (sin, cos, exp, sqrt, log, tan, abs)"
+
+        # Check that 'x' is used as variable (not other letters)
+        # Remove allowed function names
+        temp_eq = equation
+        for func in ['sin', 'cos', 'tan', 'exp', 'sqrt', 'log', 'abs']:
+            temp_eq = temp_eq.replace(func, '')
+
+        # Check for invalid variables (letters other than 'x')
+        invalid_vars = re.findall(r'[a-wyz]', temp_eq, re.IGNORECASE)
+        if invalid_vars:
+            return False, f"Invalid variable(s) found: {', '.join(set(invalid_vars))}. Only 'x' is allowed as variable"
+
+        # Check for at least one 'x' variable
+        if 'x' not in equation:
+            return False, "Equation must contain variable 'x'"
+
+        # Check parentheses matching
+        if equation.count('(') != equation.count(')'):
+            return False, "Mismatched parentheses"
+
+        # Check for invalid patterns
+        invalid_patterns = [
+            (r'\*{3,}', "Invalid operator: too many consecutive '*'"),
+            (r'/{2,}', "Invalid operator: consecutive '/'"),
+            (r'\+{2,}', "Invalid operator: consecutive '+'"),
+            (r'\d+\.\d+\.\d+', "Invalid number format: multiple decimal points")
+        ]
+
+        for pattern, error_msg in invalid_patterns:
+            if re.search(pattern, equation):
+                return False, error_msg
+
+        # Try to evaluate the equation at a test point
+        try:
+            # Prepare equation for evaluation
+            safe_expr = equation.replace('^', '**')
+            safe_expr = safe_expr.replace('sin', 'math.sin')
+            safe_expr = safe_expr.replace('cos', 'math.cos')
+            safe_expr = safe_expr.replace('tan', 'math.tan')
+            safe_expr = safe_expr.replace('exp', 'math.exp')
+            safe_expr = safe_expr.replace('sqrt', 'math.sqrt')
+            safe_expr = safe_expr.replace('log', 'math.log')
+            safe_expr = safe_expr.replace('abs', 'math.fabs')
+
+            # Test evaluation at x=1
+            test_result = eval(safe_expr, {"x": 1.0, "math": math, "__builtins__": {}})
+
+            # Check if result is a number
+            if not isinstance(test_result, (int, float)):
+                return False, "Equation must evaluate to a number"
+
+        except SyntaxError as e:
+            return False, f"Syntax error in equation: {str(e)}"
+        except Exception as e:
+            return False, f"Invalid equation: {str(e)}"
+
+        # All checks passed
+        return True, "Equation is valid"
+
+
     def setup_phase2_ui(self, parent):
         """Setup Phase 2 Root Finding UI"""
+        # main_frame = ttk.Frame(parent, padding="20 20 20 20")
+        # main_frame.pack(fill='both', expand=True)
+        # main_frame.columnconfigure(0, weight=1)
+        # main_frame.columnconfigure(1, weight=1)
+
+        # main_frame = ttk.Frame(parent, padding="10 10 10 10")
+        # main_frame.pack(fill='both', expand=True)
+        # main_frame.rowconfigure(0, weight=1)
+        # main_frame.columnconfigure(0, weight=1)
+        # main_frame.columnconfigure(1, weight=1)
+
         main_frame = ttk.Frame(parent, padding="20 20 20 20")
         main_frame.pack(fill='both', expand=True)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
+        main_frame.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=2, minsize=400)
+        main_frame.columnconfigure(1, weight=3, minsize=600)
 
         # Input Frame (Left)
         scroll_frame = ScrollableFrame(main_frame)
@@ -262,6 +359,16 @@ class NumericalSolverGUI:
                   foreground="#7F8C8D").pack(fill='x', pady=(0, 5))
         self.equation_entry = ttk.Entry(input_frame, textvariable=self.equation_var, font=('Arial', 10))
         self.equation_entry.pack(fill='x', pady=(0, 15))
+
+        # Plotting Button
+        plot_button_frame = ttk.Frame(input_frame)
+        plot_button_frame.pack(fill='x', pady=(5, 15))
+        ttk.Button(plot_button_frame, text="PLOT FUNCTION",
+                   command=self.plot_function).pack(fill='x')
+        ttk.Label(plot_button_frame,
+                  text="Plot to help choose initial guess(es)",
+                  font=("Arial", 9), foreground="#7F8C8D").pack(fill='x', pady=(5, 0))
+
 
         # Method Selection
         ttk.Label(input_frame, text="Root Finding Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
@@ -309,22 +416,59 @@ class NumericalSolverGUI:
         self.reset_step_button = ttk.Button(button_frame, text="Reset", command=self.reset_step_mode, state=tk.DISABLED)
         self.reset_step_button.pack(side=tk.LEFT)
 
-        # Output Frame (Right)
-        output_frame = ttk.LabelFrame(main_frame, text="Root & Results", padding="15")
-        output_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
+
+        # Output Frame (Right) (scrollable)
+        output_scroll_frame = ScrollableFrame(main_frame)
+        output_scroll_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
+
+        output_container = output_scroll_frame.scrollable_frame
+        output_container.columnconfigure(0, weight=1)
+
+        output_frame = ttk.LabelFrame(output_container, text="Root & Results", padding="15")
+        output_frame.pack(fill='both', expand=True)
         output_frame.columnconfigure(0, weight=1)
 
-        ttk.Label(output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
-        self.root_results_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, height=15, width=50,
-                                                           font=("Consolas", 11), state=tk.DISABLED, bg="#F0F8FF",
-                                                           fg="#004D99", relief=tk.FLAT)
-        self.root_results_text.pack(fill='both', expand=True)
+        # Plot Display
+        ttk.Label(output_frame, text="Function Plot:", style='Title.TLabel').pack(
+            fill='x', pady=(0, 5))
 
-        ttk.Label(output_frame, text="Iteration Details:", style='Title.TLabel').pack(fill='x', pady=(15, 5))
-        self.root_log_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, height=8, width=50,
-                                                       font=("Consolas", 9), state=tk.DISABLED, bg="#F5F5F5",
-                                                       fg="#555555", relief=tk.FLAT)
+
+        # expands horizontally when plotted
+        self.plot_frame = ttk.Frame(output_frame, relief=tk.SUNKEN, borderwidth=1)
+        self.plot_frame.pack(fill='both', expand=True, pady=(0, 10))
+
+        # self.plot_frame = ttk.Frame(output_frame, relief=tk.SUNKEN, borderwidth=1, height=400)
+        # self.plot_frame.pack(fill='x', pady=(0, 10))
+        # self.plot_frame.pack_propagate(False)  # Fixed height
+
+        self.plot_placeholder = ttk.Label(
+            self.plot_frame,
+            text="Click 'PLOT FUNCTION' to visualize\nand choose initial guesses",
+            font=("Arial", 10),
+            foreground="#95A5A6",
+            justify=tk.CENTER)
+        self.plot_placeholder.pack(expand=True)
+
+        # Results Output
+        ttk.Label(output_frame, text="Results Output:", style='Title.TLabel').pack(
+            fill='x', pady=(15, 5))
+
+        self.root_results_text = scrolledtext.ScrolledText(
+            output_frame, wrap=tk.WORD, height=15, width=50,
+            font=("Consolas", 10), state=tk.DISABLED,
+            bg="#F0F8FF", fg="#004D99", relief=tk.FLAT)
+        self.root_results_text.pack(fill='both', expand=True, pady=(0, 10))
+
+        # Iteration Details
+        ttk.Label(output_frame, text="Iteration Details:", style='Title.TLabel').pack(
+            fill='x', pady=(10, 5))
+
+        self.root_log_text = scrolledtext.ScrolledText(
+            output_frame, wrap=tk.WORD, height=12, width=50,
+            font=("Consolas", 9), state=tk.DISABLED,
+            bg="#F5F5F5", fg="#555555", relief=tk.FLAT)
         self.root_log_text.pack(fill='both', expand=True)
+
 
     def clear_params_frame(self):
         """Clear Phase 1 parameters frame"""
@@ -527,8 +671,11 @@ class NumericalSolverGUI:
     def solve_root_finding(self):
         """Solve Phase 2 root finding problem"""
         equation = self.equation_var.get().strip()
-        if not equation:
-            messagebox.showerror("Input Error", "Please enter an equation")
+
+        # Validate Equation
+        is_valid, error_msg = self.validate_equation(equation)
+        if not is_valid:
+            messagebox.showerror("Invalid Equation", error_msg)
             return
 
         try:
@@ -697,6 +844,78 @@ class NumericalSolverGUI:
             for widget in [self.root_results_text, self.root_log_text]:
                 widget.config(state=tk.DISABLED)
 
+    def plot_function(self):
+        """Plot function to help choose initial guesses"""
+        equation = self.equation_var.get().strip()
+
+        # Validate Equation
+        is_valid, error_msg = self.validate_equation(equation)
+        if not is_valid:
+            messagebox.showerror("Invalid Equation", error_msg)
+            return
+
+        method = self.root_method_var.get()
+
+        try:
+            # Get range
+            try:
+                a = float(self.interval_a_var.get() or -10)
+                b = float(self.interval_b_var.get() or 10)
+                if a >= b:
+                    a, b = -10, 10
+            except ValueError:
+                a, b = -10, 10
+
+            # Create solver
+            temp_params = {"epsilon": 0.00001, "max_iterations": 1}
+            root_data = RootFinderData(equation, "Bisection", 5, temp_params)
+            solver = RootFinderFactory.get_solver(root_data)
+
+            # Generate points
+            x_vals = np.linspace(a, b, 500)
+            y_vals = []
+
+            for x in x_vals:
+                try:
+                    y = solver.evaluate(x)
+                    y_vals.append(y if abs(y) < 1e10 else None)
+                except:
+                    y_vals.append(None)
+
+            # Clear previous
+            for widget in self.plot_frame.winfo_children():
+                widget.destroy()
+
+            # Create figure
+            fig = Figure(figsize=(6, 4), dpi=100)
+            ax = fig.add_subplot(111)
+
+            if method == "Fixed Point":
+                ax.plot(x_vals, y_vals, 'b-', label='g(x)', linewidth=2)
+                ax.plot(x_vals, x_vals, 'r--', label='y = x', linewidth=2)
+                ax.set_title(f'Fixed Point: g(x)=0 ∩ y=x\n{equation}', fontsize=10)
+            else:
+                ax.plot(x_vals, y_vals, 'b-', label='f(x)', linewidth=2)
+                ax.axhline(y=0, color='r', linestyle='--', linewidth=1.5, label='y = 0')
+                ax.set_title(f'{method}: f(x) = 0\n{equation}', fontsize=10)
+
+            ax.axvline(x=0, color='k', linestyle='-', linewidth=0.5, alpha=0.3)
+            ax.grid(True, alpha=0.3)
+            ax.set_xlabel('x', fontsize=10, fontweight='bold')
+            ax.set_ylabel('y', fontsize=10, fontweight='bold')
+            ax.legend(loc='best')
+            fig.tight_layout()
+
+            # Embed
+            canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill='both', expand=True)
+
+            messagebox.showinfo("Plot Success", f"Plotted from x={a} to x={b}")
+
+        except Exception as e:
+            messagebox.showerror("Plot Error", f"Could not plot:\n{str(e)}")
+            self.plot_placeholder.pack(expand=True)
 
 # ============================================================================
 # APPLICATION ENTRY POINT
