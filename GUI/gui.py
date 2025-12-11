@@ -1,33 +1,37 @@
 """
-Numerical Solver GUI - Phase 1 & Phase 2
+Numerical Solver GUI - Phase 1 & Phase 2 - COMPLETE
 File: GUI/gui.py
 
 GUI Application with two tabs:
 - Phase 1: Linear System Solver (Gaussian Elimination, Gauss-Jordan, LU Decomposition, Iterative Methods)
+           WITH BONUSES: Single-Step Mode (#1) & Scaling (#3)
 - Phase 2: Root Finder (Bisection, False-Position, Fixed Point, Newton-Raphson, etc.)
+           WITH BONUS: Single-Step Mode (#1)
 
-Includes BONUS: Single-Step Mode for step-by-step iteration visualization
+Features:
+- Bonus #1: Single-step mode simulation showing each step of the algorithm (BOTH PHASES)
+- Bonus #3: Scaling as explained in the lecture (PHASE 1 ONLY)
 """
 
 # ============================================================================
 # IMPORTS
 # ============================================================================
 
-import tkinter as tk  # GUI framework
-from tkinter import ttk, scrolledtext, messagebox  # GUI components and dialogs
-from typing import List  # Type hints
-import copy  # For deep copying matrices
-import time  # For timing execution
-
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
+from typing import List
+import copy
+import time
 import re
 import math
-
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 # Phase 1 Imports
-from NumericalSolver import NumericalSolver  # Linear system solver coordinator
-from System.SystemData import SystemData  # Phase 1 DTO
+from NumericalSolver import NumericalSolver
+from System.SystemData import SystemData
 
 # Phase 2 Imports
 from RootFinder import RootFinderData, RootFinderFactory
@@ -86,7 +90,8 @@ class NumericalSolverGUI:
     Features:
     - Two-tab interface for Phase 1 (Linear Systems) and Phase 2 (Root Finding)
     - Dynamic parameter updating based on selected method
-    - Single-step mode bonus feature for Phase 2
+    - Single-step mode bonus feature for BOTH phases
+    - Scaling option bonus feature for Phase 1 direct methods
     - Comprehensive error handling and user feedback
     """
 
@@ -114,6 +119,14 @@ class NumericalSolverGUI:
         self.initial_guess_var = tk.StringVar(master, value="0, 0, 0")
         self.max_iter_var = tk.StringVar(master, value="100")
         self.error_tol_var = tk.StringVar(master, value="0.01")
+        self.use_scaling_var = tk.BooleanVar(master, value=False)  # BONUS #3
+
+        # Phase 1 Single-Step Mode Variables (Bonus #1)
+        self.single_step_phase1_var = tk.BooleanVar(master, value=False)
+        self.step_mode_active_phase1 = False
+        self.current_step_index_phase1 = 0
+        self.all_steps_phase1 = []
+        self.execution_time_phase1 = 0.0
 
         # ====================================================================
         # PHASE 2 VARIABLES (Root Finding)
@@ -127,17 +140,17 @@ class NumericalSolverGUI:
         self.interval_b_var = tk.StringVar(master, value="5")
         self.initial_guess_root_var = tk.StringVar(master, value="1")
         self.second_guess_root_var = tk.StringVar(master, value="2")
-        self.delta_var =tk.StringVar(master, value="0.01")
+        self.delta_var = tk.StringVar(master, value="0.01")
         self.single_step_var = tk.BooleanVar(value=False)
 
-        # Matrix input widgets storage
-        self.matrix_entry_widgets: List[List[tk.Entry]] = []
-
-        # Single-step mode variables
+        # Phase 2 Step mode variables
         self.step_mode_active = False
         self.current_step_index = 0
         self.all_steps = []
         self.execution_time = 0.0
+
+        # Matrix input widgets storage
+        self.matrix_entry_widgets: List[List[tk.Entry]] = []
 
         # Setup styles and UI
         self.setup_styles()
@@ -186,7 +199,7 @@ class NumericalSolverGUI:
         self.setup_phase2_ui(self.phase2_frame)
 
     def setup_phase1_ui(self, parent):
-        """Setup Phase 1 Linear Systems UI"""
+        """Setup Phase 1 Linear Systems UI with Scaling and Single-Step Bonuses"""
         main_frame = ttk.Frame(parent, padding="20 20 20 20")
         main_frame.pack(fill='both', expand=True)
         main_frame.columnconfigure(0, weight=1)
@@ -210,7 +223,15 @@ class NumericalSolverGUI:
         self.n_entry.pack(side=tk.LEFT, padx=(0, 15))
         ttk.Button(n_frame, text="Generate Matrix", command=self.generate_matrix_input).pack(side=tk.LEFT, padx=(0, 20))
         self.solve_button = ttk.Button(n_frame, text="SOLVE", command=self.solve_linear_system)
-        self.solve_button.pack(side=tk.LEFT)
+        self.solve_button.pack(side=tk.LEFT, padx=(0, 5))
+
+        # Phase 1 Single-Step Navigation Buttons
+        self.next_step_button_p1 = ttk.Button(n_frame, text="Next Step",
+                                             command=self.next_step_phase1, state=tk.DISABLED)
+        self.next_step_button_p1.pack(side=tk.LEFT, padx=(0, 5))
+        self.reset_step_button_p1 = ttk.Button(n_frame, text="Reset",
+                                              command=self.reset_step_phase1, state=tk.DISABLED)
+        self.reset_step_button_p1.pack(side=tk.LEFT)
 
         # Matrix Input
         ttk.Label(input_frame, text="Enter Coefficients [A|b]:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
@@ -239,6 +260,26 @@ class NumericalSolverGUI:
         ttk.Entry(precision_frame, textvariable=self.precision_var, width=10, font=('Arial', 10)).pack(side=tk.RIGHT,
                                                                                                        padx=(10, 0))
 
+        # BONUS #3: Scaling Option
+        scaling_frame = ttk.LabelFrame(input_frame, text="Advanced Options (Bonus)", padding="10")
+        scaling_frame.pack(fill='x', pady=(10, 15))
+        ttk.Checkbutton(scaling_frame, text="Enable Scaled Partial Pivoting",
+                       variable=self.use_scaling_var,
+                       command=self.update_scaling_help).pack(fill='x', padx=5, pady=5)
+        self.scaling_help_label = ttk.Label(scaling_frame,
+                                           text="Improves numerical stability by normalizing row magnitudes during pivot selection",
+                                           font=("Arial", 9), foreground="#7F8C8D", wraplength=250)
+        self.scaling_help_label.pack(fill='x', padx=5)
+
+        # BONUS #1: Single-Step Mode for Phase 1
+        single_step_frame = ttk.LabelFrame(input_frame, text="Single-Step Mode (Bonus #1)", padding="10")
+        single_step_frame.pack(fill='x', pady=(10, 15))
+        ttk.Checkbutton(single_step_frame, text="Enable Single-Step Mode",
+                       variable=self.single_step_phase1_var).pack(fill='x', padx=5, pady=5)
+        ttk.Label(single_step_frame,
+                 text="View each algorithm step (pivoting, elimination, substitution, iteration)",
+                 font=("Arial", 9), foreground="#7F8C8D", wraplength=250).pack(fill='x', padx=5)
+
         # Output Frame (Right)
         output_frame = ttk.LabelFrame(main_frame, text="Solution & Results", padding="15")
         output_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
@@ -255,41 +296,42 @@ class NumericalSolverGUI:
                                                   state=tk.DISABLED, bg="#F5F5F5", fg="#555555", relief=tk.FLAT)
         self.log_text.pack(fill='both', expand=True)
 
+    def update_scaling_help(self):
+        """Update scaling help text based on toggle"""
+        if self.use_scaling_var.get():
+            self.scaling_help_label.config(
+                text="✓ Enabled: Uses scaled partial pivoting for improved numerical stability"
+            )
+        else:
+            self.scaling_help_label.config(
+                text="Disabled: Uses standard partial pivoting (faster but may be less stable)"
+            )
 
-    # Equation input validation
-    def validate_equation(self, equation: str) -> tuple[bool, str]:
+    def validate_equation(self, equation: str) -> tuple:
         """Validate equation input for root finding"""
         if not equation or equation.strip() == "":
             return False, "Equation cannot be empty"
 
         equation = equation.strip()
 
-        # Check for allowed characters and functions
-        # Allowed: x, numbers, operators, math functions, parentheses
         allowed_pattern = r'^[x0-9\+\-\*/\.\(\)\s\*\*eEsincoxtaqrlgbfhp]+$'
         if not re.match(allowed_pattern, equation):
-            return False, "Equation contains invalid characters. Use only: x, numbers, +, -, *, /, **, (), and math functions (sin, cos, exp, sqrt, log, tan, abs)"
+            return False, "Equation contains invalid characters. Use only: x, numbers, +, -, *, /, **, (), and math functions"
 
-        # Check that 'x' is used as variable (not other letters)
-        # Remove allowed function names
         temp_eq = equation
         for func in ['sin', 'cos', 'tan', 'exp', 'sqrt', 'log', 'abs']:
             temp_eq = temp_eq.replace(func, '')
 
-        # Check for invalid variables (letters other than 'x')
         invalid_vars = re.findall(r'[a-wyz]', temp_eq, re.IGNORECASE)
         if invalid_vars:
-            return False, f"Invalid variable(s) found: {', '.join(set(invalid_vars))}. Only 'x' is allowed as variable"
+            return False, f"Invalid variable(s): {', '.join(set(invalid_vars))}. Only 'x' is allowed"
 
-        # Check for at least one 'x' variable
         if 'x' not in equation:
             return False, "Equation must contain variable 'x'"
 
-        # Check parentheses matching
         if equation.count('(') != equation.count(')'):
             return False, "Mismatched parentheses"
 
-        # Check for invalid patterns
         invalid_patterns = [
             (r'\*{3,}', "Invalid operator: too many consecutive '*'"),
             (r'/{2,}', "Invalid operator: consecutive '/'"),
@@ -301,9 +343,7 @@ class NumericalSolverGUI:
             if re.search(pattern, equation):
                 return False, error_msg
 
-        # Try to evaluate the equation at a test point
         try:
-            # Prepare equation for evaluation
             safe_expr = equation.replace('^', '**')
             safe_expr = safe_expr.replace('sin', 'math.sin')
             safe_expr = safe_expr.replace('cos', 'math.cos')
@@ -313,10 +353,8 @@ class NumericalSolverGUI:
             safe_expr = safe_expr.replace('log', 'math.log')
             safe_expr = safe_expr.replace('abs', 'math.fabs')
 
-            # Test evaluation at x=1
             test_result = eval(safe_expr, {"x": 1.0, "math": math, "__builtins__": {}})
 
-            # Check if result is a number
             if not isinstance(test_result, (int, float)):
                 return False, "Equation must evaluate to a number"
 
@@ -325,23 +363,10 @@ class NumericalSolverGUI:
         except Exception as e:
             return False, f"Invalid equation: {str(e)}"
 
-        # All checks passed
         return True, "Equation is valid"
-
 
     def setup_phase2_ui(self, parent):
         """Setup Phase 2 Root Finding UI"""
-        # main_frame = ttk.Frame(parent, padding="20 20 20 20")
-        # main_frame.pack(fill='both', expand=True)
-        # main_frame.columnconfigure(0, weight=1)
-        # main_frame.columnconfigure(1, weight=1)
-
-        # main_frame = ttk.Frame(parent, padding="10 10 10 10")
-        # main_frame.pack(fill='both', expand=True)
-        # main_frame.rowconfigure(0, weight=1)
-        # main_frame.columnconfigure(0, weight=1)
-        # main_frame.columnconfigure(1, weight=1)
-
         main_frame = ttk.Frame(parent, padding="20 20 20 20")
         main_frame.pack(fill='both', expand=True)
         main_frame.rowconfigure(0, weight=1)
@@ -373,7 +398,6 @@ class NumericalSolverGUI:
                   text="Plot to help choose initial guess(es)",
                   font=("Arial", 9), foreground="#7F8C8D").pack(fill='x', pady=(5, 0))
 
-
         # Method Selection
         ttk.Label(input_frame, text="Root Finding Method:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
         self.root_methods = ["Bisection", "False-Position", "Fixed Point", "Newton-Raphson", "Modified Newton-Raphson (Known m)",
@@ -404,7 +428,7 @@ class NumericalSolverGUI:
         # Single Step Mode Toggle (BONUS)
         single_step_frame = ttk.Frame(input_frame)
         single_step_frame.pack(fill='x', pady=(15, 10))
-        ttk.Checkbutton(single_step_frame, text="Enable Single Step Mode (Bonus)", variable=self.single_step_var).pack(
+        ttk.Checkbutton(single_step_frame, text="Enable Single Step Mode (Bonus #1)", variable=self.single_step_var).pack(
             side=tk.LEFT)
         ttk.Label(single_step_frame, text="View each iteration step-by-step", font=("Arial", 9),
                   foreground="#7F8C8D").pack(side=tk.LEFT, padx=(10, 0))
@@ -420,8 +444,7 @@ class NumericalSolverGUI:
         self.reset_step_button = ttk.Button(button_frame, text="Reset", command=self.reset_step_mode, state=tk.DISABLED)
         self.reset_step_button.pack(side=tk.LEFT)
 
-
-        # Output Frame (Right) (scrollable)
+        # Output Frame (Right)
         output_scroll_frame = ScrollableFrame(main_frame)
         output_scroll_frame.grid(row=0, column=1, padx=15, pady=15, sticky="nsew")
 
@@ -433,17 +456,10 @@ class NumericalSolverGUI:
         output_frame.columnconfigure(0, weight=1)
 
         # Plot Display
-        ttk.Label(output_frame, text="Function Plot:", style='Title.TLabel').pack(
-            fill='x', pady=(0, 5))
+        ttk.Label(output_frame, text="Function Plot:", style='Title.TLabel').pack(fill='x', pady=(0, 5))
 
-
-        # expands horizontally when plotted
         self.plot_frame = ttk.Frame(output_frame, relief=tk.SUNKEN, borderwidth=1)
         self.plot_frame.pack(fill='both', expand=True, pady=(0, 10))
-
-        # self.plot_frame = ttk.Frame(output_frame, relief=tk.SUNKEN, borderwidth=1, height=400)
-        # self.plot_frame.pack(fill='x', pady=(0, 10))
-        # self.plot_frame.pack_propagate(False)  # Fixed height
 
         self.plot_placeholder = ttk.Label(
             self.plot_frame,
@@ -454,8 +470,7 @@ class NumericalSolverGUI:
         self.plot_placeholder.pack(expand=True)
 
         # Results Output
-        ttk.Label(output_frame, text="Results Output:", style='Title.TLabel').pack(
-            fill='x', pady=(15, 5))
+        ttk.Label(output_frame, text="Results Output:", style='Title.TLabel').pack(fill='x', pady=(15, 5))
 
         self.root_results_text = scrolledtext.ScrolledText(
             output_frame, wrap=tk.WORD, height=15, width=50,
@@ -464,15 +479,13 @@ class NumericalSolverGUI:
         self.root_results_text.pack(fill='both', expand=True, pady=(0, 10))
 
         # Iteration Details
-        ttk.Label(output_frame, text="Iteration Details:", style='Title.TLabel').pack(
-            fill='x', pady=(10, 5))
+        ttk.Label(output_frame, text="Iteration Details:", style='Title.TLabel').pack(fill='x', pady=(10, 5))
 
         self.root_log_text = scrolledtext.ScrolledText(
             output_frame, wrap=tk.WORD, height=12, width=50,
             font=("Consolas", 9), state=tk.DISABLED,
             bg="#F5F5F5", fg="#555555", relief=tk.FLAT)
         self.root_log_text.pack(fill='both', expand=True)
-
 
     def clear_params_frame(self):
         """Clear Phase 1 parameters frame"""
@@ -594,11 +607,9 @@ class NumericalSolverGUI:
             self.m_var = tk.StringVar(self.master, value="1")
             ttk.Entry(self.root_params_frame, textvariable=self.m_var, font=('Arial', 10)).pack(fill='x')
 
-
         elif method == "Modified Newton-Raphson (Unknown m)":
             ttk.Label(self.root_params_frame, text="Initial Guess (x₀):", style='TLabel').pack(fill='x', pady=(5, 5))
             ttk.Entry(self.root_params_frame, textvariable=self.initial_guess_root_var, font=('Arial', 10)).pack(fill='x')
-
 
         elif method == "Secant":
             initial_guess_frame = ttk.Frame(self.root_params_frame)
@@ -622,11 +633,10 @@ class NumericalSolverGUI:
             delta_frame = ttk.Frame(self.root_params_frame)
             delta_frame.pack(fill='x', pady=(0, 5))
             ttk.Label(delta_frame, text="ẟ  :").pack(side=tk.LEFT, padx=(0, 5))
-            ttk.Entry(delta_frame, textvariable=self.delta_var, width=10, font=('Arial', 10)).pack(
-                side=tk.LEFT)
+            ttk.Entry(delta_frame, textvariable=self.delta_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
 
     def solve_linear_system(self):
-        """Solve Phase 1 linear system"""
+        """Solve Phase 1 linear system with optional single-step and scaling bonuses"""
         try:
             N = int(self.n_var.get())
         except ValueError:
@@ -663,27 +673,148 @@ class NumericalSolverGUI:
                 messagebox.showerror("Input Error", str(e))
                 return
 
-        system_data = SystemData(copy.deepcopy(A), copy.deepcopy(b), method, precision, params)
+        # Create SystemData with scaling and single-step support
+        system_data = SystemData(copy.deepcopy(A), copy.deepcopy(b), method, precision, params,
+                                use_scaling=self.use_scaling_var.get())
+
+        # Track execution time
+        start_time = time.time()
         results = self.solver.solve(system_data)
+        self.execution_time_phase1 = time.time() - start_time
 
         if results["success"]:
-            sol_text = ""
-            for i, val in enumerate(results["sol"]):
-                formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
-                sol_text += f"X{i + 1} = {formatted_val}\n"
-            output_text = f"--- Solution ---\n\n{sol_text}"
-            log_text = f"Method: {results['method_used']}\nPrecision: {results['precision']} sig figs\nExecution Time: {results['execution_time']:.6f}s\n"
+            # Store steps for single-step mode
+            self.all_steps_phase1 = results.get("steps", [])
+
+            # Check if single-step mode is enabled
+            if self.single_step_phase1_var.get():
+                self.step_mode_active_phase1 = True
+                self.current_step_index_phase1 = 0
+                self.next_step_button_p1.config(state=tk.NORMAL)
+                self.reset_step_button_p1.config(state=tk.NORMAL)
+                self.display_step_phase1()
+            else:
+                # Display full solution
+                sol_text = ""
+                for i, val in enumerate(results["sol"]):
+                    formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
+                    sol_text += f"X{i + 1} = {formatted_val}\n"
+                output_text = f"--- Solution ---\n\n{sol_text}"
+                scaling_note = "\n[Using Scaled Partial Pivoting]" if self.use_scaling_var.get() else ""
+                log_text = f"Method: {results['method_used']}{scaling_note}\nPrecision: {results['precision']} sig figs\nExecution Time: {self.execution_time_phase1:.6f}s\n"
+
+                self.update_results_display(output_text, log_text, phase=1)
         else:
             output_text = f"ERROR:\n{results.get('error_message', 'Unknown error')}"
-            log_text = f"Execution Time: {results.get('execution_time', 0):.6f}s\n"
+            log_text = f"Execution Time: {self.execution_time_phase1:.6f}s\n"
+            self.update_results_display(output_text, log_text, phase=1)
+
+    def display_step_phase1(self):
+        """Display current step in Phase 1 single-step mode"""
+        if self.current_step_index_phase1 >= len(self.all_steps_phase1):
+            self.show_final_summary_phase1()
+            return
+
+        current_step = self.all_steps_phase1[self.current_step_index_phase1]
+        progress = f"Step {self.current_step_index_phase1 + 1} of {len(self.all_steps_phase1)}"
+
+        output_text = f"--- SINGLE STEP MODE (Phase 1) ---\n\n"
+        output_text += f"{progress}\n"
+        output_text += f"Method: {self.method_var.get()}\n"
+        output_text += f"Precision: {self.precision_var.get()} sig figs\n\n"
+        output_text += "Current Step Details:\n"
+        output_text += "-" * 60 + "\n"
+
+        # Format step information
+        if isinstance(current_step, dict):
+            for key, value in current_step.items():
+                if isinstance(value, list) and len(value) > 0 and isinstance(value[0], list):
+                    output_text += f"{key}: [Matrix Data]\n"
+                elif isinstance(value, (int, float)):
+                    output_text += f"{key:.<40} {value:.6f}\n"
+                else:
+                    output_text += f"{key:.<40} {value}\n"
+        else:
+            output_text += str(current_step) + "\n"
+
+        output_text += "-" * 60 + "\n\n"
+        output_text += "Press 'Next Step' to continue or 'Reset' to start over"
+
+        log_text = f"Execution Time: {self.execution_time_phase1:.6f}s\n\n"
+        log_text += f"Steps Completed: {self.current_step_index_phase1 + 1}/{len(self.all_steps_phase1)}\n\n"
+        log_text += "Step History:\n"
+        for i, step in enumerate(self.all_steps_phase1[:self.current_step_index_phase1 + 1]):
+            if isinstance(step, dict) and "operation" in step:
+                log_text += f"[{i + 1}] {step.get('operation', 'Unknown')}\n"
+            else:
+                log_text += f"[{i + 1}] {str(step)[:50]}...\n"
 
         self.update_results_display(output_text, log_text, phase=1)
+
+    def next_step_phase1(self):
+        """Move to next step in Phase 1 single-step mode"""
+        if self.step_mode_active_phase1:
+            self.current_step_index_phase1 += 1
+            self.display_step_phase1()
+
+    def reset_step_phase1(self):
+        """Reset Phase 1 step mode and go back to beginning"""
+        self.step_mode_active_phase1 = False
+        self.current_step_index_phase1 = 0
+        self.next_step_button_p1.config(state=tk.DISABLED)
+        self.reset_step_button_p1.config(state=tk.DISABLED)
+
+        # Display full solution
+        if self.all_steps_phase1:
+            sol_text = "Solution from Last Solve:\n"
+            if isinstance(self.all_steps_phase1[-1], dict) and "solution" in self.all_steps_phase1[-1]:
+                solution = self.all_steps_phase1[-1]["solution"]
+                precision = int(self.precision_var.get() or 5)
+                for i, val in enumerate(solution):
+                    formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
+                    sol_text += f"X{i + 1} = {formatted_val}\n"
+
+            output_text = f"--- Solution ---\n\n{sol_text}"
+            scaling_note = "\n[Using Scaled Partial Pivoting]" if self.use_scaling_var.get() else ""
+            log_text = f"Method: {self.method_var.get()}{scaling_note}\nPrecision: {self.precision_var.get()} sig figs\nExecution Time: {self.execution_time_phase1:.6f}s\n"
+
+            self.update_results_display(output_text, log_text, phase=1)
+
+    def show_final_summary_phase1(self):
+        """Show final summary after all steps completed in Phase 1"""
+        output_text = f"--- ALL STEPS COMPLETED ---\n\n"
+        output_text += f"Method: {self.method_var.get()}\n"
+        output_text += f"Total Steps: {len(self.all_steps_phase1)}\n\n"
+
+        # Extract final solution if available
+        if self.all_steps_phase1 and isinstance(self.all_steps_phase1[-1], dict):
+            if "solution" in self.all_steps_phase1[-1]:
+                solution = self.all_steps_phase1[-1]["solution"]
+                precision = int(self.precision_var.get() or 5)
+                output_text += "✓ Solution Found:\n"
+                for i, val in enumerate(solution):
+                    formatted_val = f"{val:.{precision}f}".rstrip('0').rstrip('.')
+                    output_text += f"  X{i + 1} = {formatted_val}\n"
+
+        output_text += f"\n✓ Execution Time: {self.execution_time_phase1:.6f}s\n"
+        output_text += "All steps completed. Press 'Reset' to solve again."
+
+        log_text = "Complete Step History:\n\n"
+        for i, step in enumerate(self.all_steps_phase1):
+            if isinstance(step, dict) and "operation" in step:
+                log_text += f"[{i + 1}] {step.get('operation', 'Unknown')}\n"
+                if "description" in step:
+                    log_text += f"     {step['description']}\n"
+            else:
+                log_text += f"[{i + 1}] {str(step)[:60]}...\n"
+
+        self.update_results_display(output_text, log_text, phase=1)
+        self.next_step_button_p1.config(state=tk.DISABLED)
 
     def solve_root_finding(self):
         """Solve Phase 2 root finding problem"""
         equation = self.equation_var.get().strip()
 
-        # Validate Equation
         is_valid, error_msg = self.validate_equation(equation)
         if not is_valid:
             messagebox.showerror("Invalid Equation", error_msg)
@@ -705,21 +836,17 @@ class NumericalSolverGUI:
             "max_iterations": max_iter
         }
 
-        # Get method-specific parameters
         try:
             if method == "Bisection":
                 params["interval_a"] = float(self.interval_a_var.get())
                 params["interval_b"] = float(self.interval_b_var.get())
             elif method == "Fixed Point":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
-
             elif method == "False-Position":
                 params["interval_a"] = float(self.interval_a_var.get())
                 params["interval_b"] = float(self.interval_b_var.get())
-
             elif method == "Newton-Raphson":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
-
             elif method == "Modified Newton-Raphson (Known m)":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
                 try:
@@ -727,16 +854,12 @@ class NumericalSolverGUI:
                 except Exception as e:
                     messagebox.showerror("Input Error", "Please enter a valid multiplicity 'm'")
                     return
-
             elif method == "Modified Newton-Raphson (Unknown m)":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
-
-
             elif method == "Secant":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
                 params["second_guess"] = float(self.second_guess_root_var.get())
-
-            elif method == "Modidfied Secant":
+            elif method == "Modified Secant":
                 params["initial_guess"] = float(self.initial_guess_root_var.get())
                 params["delta"] = float(self.delta_var.get())
 
@@ -744,7 +867,6 @@ class NumericalSolverGUI:
             messagebox.showerror("Input Error", str(e))
             return
 
-        # Create DTO and solve
         start_time = time.time()
         try:
             root_data = RootFinderData(equation, method, precision, params)
@@ -752,7 +874,6 @@ class NumericalSolverGUI:
             results = solver.solve()
             self.execution_time = time.time() - start_time
 
-            # Store for step mode
             self.all_steps = results.get("steps", [])
             self.current_root = results["root"]
             self.current_iterations = results["iterations"]
@@ -761,7 +882,6 @@ class NumericalSolverGUI:
             self.current_method = method
             self.current_equation = equation
 
-            # Check if single step mode is enabled
             if self.single_step_var.get():
                 self.step_mode_active = True
                 self.current_step_index = 0
@@ -769,7 +889,6 @@ class NumericalSolverGUI:
                 self.reset_step_button.config(state=tk.NORMAL)
                 self.display_step_mode()
             else:
-                # Display full solution
                 self.display_full_solution()
 
         except Exception as e:
@@ -879,7 +998,6 @@ class NumericalSolverGUI:
         """Plot function to help choose initial guesses"""
         equation = self.equation_var.get().strip()
 
-        # Validate Equation
         is_valid, error_msg = self.validate_equation(equation)
         if not is_valid:
             messagebox.showerror("Invalid Equation", error_msg)
@@ -888,7 +1006,6 @@ class NumericalSolverGUI:
         method = self.root_method_var.get()
 
         try:
-            # Get range
             try:
                 a = float(self.interval_a_var.get() or -10)
                 b = float(self.interval_b_var.get() or 10)
@@ -897,12 +1014,10 @@ class NumericalSolverGUI:
             except ValueError:
                 a, b = -10, 10
 
-            # Create solver
             temp_params = {"epsilon": 0.00001, "max_iterations": 1}
             root_data = RootFinderData(equation, "Bisection", 5, temp_params)
             solver = RootFinderFactory.get_solver(root_data)
 
-            # Generate points
             x_vals = np.linspace(a, b, 500)
             y_vals = []
 
@@ -913,11 +1028,9 @@ class NumericalSolverGUI:
                 except:
                     y_vals.append(None)
 
-            # Clear previous
             for widget in self.plot_frame.winfo_children():
                 widget.destroy()
 
-            # Create figure
             fig = Figure(figsize=(6, 4), dpi=100)
             ax = fig.add_subplot(111)
 
@@ -937,7 +1050,6 @@ class NumericalSolverGUI:
             ax.legend(loc='best')
             fig.tight_layout()
 
-            # Embed
             canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
             canvas.draw()
             canvas.get_tk_widget().pack(fill='both', expand=True)
@@ -947,6 +1059,7 @@ class NumericalSolverGUI:
         except Exception as e:
             messagebox.showerror("Plot Error", f"Could not plot:\n{str(e)}")
             self.plot_placeholder.pack(expand=True)
+
 
 # ============================================================================
 # APPLICATION ENTRY POINT
