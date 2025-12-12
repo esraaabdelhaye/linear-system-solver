@@ -5,8 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8f6edbc5-d2df-4685-af3d-069d75ed5430" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/linear-system-solver.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/linear-system-solver.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/gui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/AbstractSolver.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/AbstractSolver.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/Cholesky.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/Cholesky.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/Crout.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/Crout.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/Doolittle.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/Doolittle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/GaussElimination.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/GaussElimination.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/GaussJordan.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/GaussJordan.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/methods/IterativeMethod.py" beforeDir="false" afterPath="$PROJECT_DIR$/methods/IterativeMethod.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +28,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.gui.executor": "Run",
-    "git-widget-placeholder": "final__version",
+    "git-widget-placeholder": "Merging final__version",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
