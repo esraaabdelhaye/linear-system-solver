@@ -130,6 +130,10 @@ class NumericalSolverGUI:
         self.delta_var =tk.StringVar(master, value="0.01")
         self.single_step_var = tk.BooleanVar(value=False)
 
+        # Plotting intervals variables
+        self.plot_interval_a_var = tk.StringVar(master, value="-10")
+        self.plot_interval_b_var = tk.StringVar(master, value="10")
+
         # Matrix input widgets storage
         self.matrix_entry_widgets: List[List[tk.Entry]] = []
 
@@ -273,7 +277,7 @@ class NumericalSolverGUI:
         # Check that 'x' is used as variable (not other letters)
         # Remove allowed function names
         temp_eq = equation
-        for func in ['sin', 'cos', 'tan', 'exp', 'sqrt', 'log', 'abs']:
+        for func in ['sin', 'cos', 'tan', 'exp', 'sqrt', 'log', 'abs', 'ln']:
             temp_eq = temp_eq.replace(func, '')
 
         # Check for invalid variables (letters other than 'x')
@@ -364,14 +368,29 @@ class NumericalSolverGUI:
         self.equation_entry = ttk.Entry(input_frame, textvariable=self.equation_var, font=('Arial', 10))
         self.equation_entry.pack(fill='x', pady=(0, 15))
 
-        # Plotting Button
-        plot_button_frame = ttk.Frame(input_frame)
-        plot_button_frame.pack(fill='x', pady=(5, 15))
-        ttk.Button(plot_button_frame, text="PLOT FUNCTION",
-                   command=self.plot_function).pack(fill='x')
-        ttk.Label(plot_button_frame,
-                  text="Plot to help choose initial guess(es)",
-                  font=("Arial", 9), foreground="#7F8C8D").pack(fill='x', pady=(5, 0))
+        # Plotting Buttons
+        plot_section_frame = ttk.LabelFrame(input_frame, text="Function Plotting", padding="10")
+        plot_section_frame.pack(fill='x', pady=(5, 15))
+
+        ttk.Label(plot_section_frame, text="Plot Interval:", style='TLabel').pack(fill='x', pady=(5, 5))
+
+        interval_frame = ttk.Frame(plot_section_frame)
+        interval_frame.pack(fill='x', pady=(0, 10))
+
+        a_plot_frame = ttk.Frame(interval_frame)
+        a_plot_frame.pack(side=tk.LEFT, expand=True, fill='x', padx=(0, 5))
+        ttk.Label(a_plot_frame, text="From:").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Entry(a_plot_frame, textvariable=self.plot_interval_a_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
+
+        b_plot_frame = ttk.Frame(interval_frame)
+        b_plot_frame.pack(side=tk.LEFT, expand=True, fill='x', padx=(5, 0))
+        ttk.Label(b_plot_frame, text="To:").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Entry(b_plot_frame, textvariable=self.plot_interval_b_var, width=10, font=('Arial', 10)).pack(side=tk.LEFT)
+
+        ttk.Button(plot_section_frame, text="PLOT FUNCTION", command=self.plot_function).pack(fill='x', pady=(5, 5))
+
+        ttk.Label(plot_section_frame, text="Plot to help choose initial guess(es)",
+                  font=("Arial", 9), foreground="#7F8C8D").pack(fill='x', pady=(0, 5))
 
 
         # Method Selection
@@ -404,7 +423,7 @@ class NumericalSolverGUI:
         # Single Step Mode Toggle (BONUS)
         single_step_frame = ttk.Frame(input_frame)
         single_step_frame.pack(fill='x', pady=(15, 10))
-        ttk.Checkbutton(single_step_frame, text="Enable Single Step Mode (Bonus)", variable=self.single_step_var).pack(
+        ttk.Checkbutton(single_step_frame, text="Enable Single Step Mode", variable=self.single_step_var).pack(
             side=tk.LEFT)
         ttk.Label(single_step_frame, text="View each iteration step-by-step", font=("Arial", 9),
                   foreground="#7F8C8D").pack(side=tk.LEFT, padx=(10, 0))
@@ -890,8 +909,8 @@ class NumericalSolverGUI:
         try:
             # Get range
             try:
-                a = float(self.interval_a_var.get() or -10)
-                b = float(self.interval_b_var.get() or 10)
+                a = float(self.plot_interval_a_var.get())
+                b = float(self.plot_interval_b_var.get())
                 if a >= b:
                     a, b = -10, 10
             except ValueError:
